@@ -171,7 +171,68 @@ const _: (/* generic JSON */) = {
 
 #[cfg(feature="uuid")]
 const _: (/* UUID */) = {
-    use sqlx_core::types::Uuid;
+    use sqlx_core::types::uuid::{Uuid, fmt::{Hyphenated, Simple}};
 
-    
+    impl Type<D1> for Uuid {
+        fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
+            <Vec<u8> as Type<D1>>::type_info()
+        }
+    }
+    impl<'q> Encode<'q, D1> for Uuid {
+        fn encode_by_ref(
+            &self,
+            buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
+        ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
+            <Vec<u8> as Encode<'q, D1>>::encode(self.into_bytes().into(), buf)
+        }
+    }
+    impl Decode<'_, D1> for Uuid {
+        fn decode(value: <D1 as sqlx_core::database::Database>::ValueRef<'_>) -> Result<Self, sqlx_core::error::BoxDynError> {
+            Ok(Uuid::from_slice(&<Vec<u8> as Decode<D1>>::decode(value)?).map_err(D1Error::from_rust)?)
+        }
+    }
+
+    impl Type<D1> for Hyphenated {
+        fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
+            <String as Type<D1>>::type_info()
+        }
+    }
+    impl<'q> Encode<'q, D1> for Hyphenated {
+        fn encode_by_ref(
+            &self,
+            buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
+        ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
+            <String as Encode<'q, D1>>::encode(self.to_string(), buf)            
+        }
+    }
+    impl Decode<'_, D1> for Hyphenated {
+        fn decode(value: <D1 as sqlx_core::database::Database>::ValueRef<'_>) -> Result<Self, sqlx_core::error::BoxDynError> {
+            let uuid = Uuid::parse_str(&<String as Decode<D1>>::decode(value)?).map_err(D1Error::from_rust)?;
+            Ok(uuid.hyphenated())
+        }
+    }
+
+    impl Type<D1> for Simple {
+        fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
+            <String as Type<D1>>::type_info()
+        }
+    }
+    impl<'q> Encode<'q, D1> for Simple {
+        fn encode_by_ref(
+            &self,
+            buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
+        ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
+            <String as Encode<'q, D1>>::encode(self.to_string(), buf)            
+        }
+    }
+    impl Decode<'_, D1> for Simple {
+        fn decode(value: <D1 as sqlx_core::database::Database>::ValueRef<'_>) -> Result<Self, sqlx_core::error::BoxDynError> {
+            let uuid = Uuid::parse_str(&<String as Decode<D1>>::decode(value)?).map_err(D1Error::from_rust)?;
+            Ok(uuid.simple())
+        }
+    }
+};
+
+const _: (/* chrono */) = {
+
 };

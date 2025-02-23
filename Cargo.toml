@@ -21,14 +21,12 @@ worker    = { version = "0.5", features = ["d1"] }
 # optional dependencies
 serde  = { optional = true, version = "1.0" }
 chrono = { optional = true, version = "0.4", default-features = false, features = ["std", "wasmbind"] }
-time   = { optional = true, version = "0.3" }
 uuid   = { optional = true, version = "1.14" }
 
 [features]
 json   = ["sqlx-core/json",   "dep:serde"]
 chrono = ["sqlx-core/chrono", "dep:chrono"]
-time   = ["sqlx-core/time",   "dep:time"]
 uuid   = ["sqlx-core/uuid",   "dep:uuid"]
 
 # DEBUG
-default = ["json", "chrono", "time", "uuid"]
+default = ["json", "chrono", "uuid"]
