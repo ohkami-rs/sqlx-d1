@@ -14,3 +14,5 @@ categories    = ["database", "asynchronous", "wasm", "rust-patterns", "network-p
 
 [dependencies]
 sqlx-core = "0.8"
+log       = "0.4" # required for `sqlx_core::connection::ConnectOptions`
+worker    = { version = "0.5", features = ["d1"] }
