@@ -1,45 +1,68 @@
 use sqlx_core::Url;
 use std::{pin::Pin, sync::Arc};
 
-pub struct D1Connection(
-    Arc<worker::D1Database>
-);
-impl sqlx_core::connection::Connection for D1Connection {
-    type Database = crate::D1;
-
-    type Options = D1ConnectOptions;
-
-    fn close(self) -> Pin<Box<dyn Future<Output = Result<(), sqlx_core::Error>> + Send + 'static>> {
-        Box::pin(async {Ok(())})
-    }
-
-    fn close_hard(self) -> Pin<Box<dyn Future<Output = Result<(), sqlx_core::Error>> + Send + 'static>> {
-        Box::pin(async {Ok(())})
-    }
-
-    fn ping(&mut self) -> Pin<Box<dyn Future<Output = Result<(), sqlx_core::Error>> + Send + '_>> {
-        Box::pin(async {Ok(())})
-    }
-
-    fn begin(&mut self) -> Pin<Box<dyn Future<Output = Result<sqlx_core::transaction::Transaction<'_, Self::Database>, sqlx_core::Error>> + Send + '_>>
-    where
-        Self: Sized,
-    {
-        sqlx_core::transaction::Transaction::begin(self)
-    }
-
-    fn shrink_buffers(&mut self) {
-        /* do nothing */
-    }
-
-    fn flush(&mut self) -> Pin<Box<dyn Future<Output = Result<(), sqlx_core::Error>> + Send + '_>> {
-        Box::pin(async {Ok(())})
-    }
-
-    fn should_flush(&self) -> bool {
-        false
-    }
+pub struct D1Connection {
+    pub(crate) inner: Arc<worker::D1Database>,
+    pub(crate) batch: Option<worker::send::SendWrapper<Box<Vec<worker::D1PreparedStatement>>>>,
 }
+const _: () = {
+    impl D1Connection {
+        pub(crate) fn begin(&mut self) {
+            self.batch = Some(worker::send::SendWrapper(Box::new(Vec::new())));
+        }
+
+        pub(crate) fn commit(&mut self) -> crate::ResultFuture<'_, ()> {
+            Box::pin(worker::send::SendFuture::new(async {
+                if let Some(batch) = &mut self.batch {
+                    self.inner.batch(std::mem::take(&mut batch.0)).await
+                    .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))));
+                }
+                Ok(())
+            }))
+        }
+
+        pub(crate) fn rollback(&mut self) {
+            self.batch = None;
+        }
+    }
+
+    impl sqlx_core::connection::Connection for D1Connection {
+        type Database = crate::D1;
+
+        type Options = D1ConnectOptions;
+
+        fn close(self) -> crate::ResultFuture<'static, ()> {
+            Box::pin(async {Ok(())})
+        }
+
+        fn close_hard(self) -> crate::ResultFuture<'static, ()> {
+            Box::pin(async {Ok(())})
+        }
+
+        fn ping(&mut self) -> crate::ResultFuture<'_, ()> {
+            Box::pin(async {Ok(())})
+        }
+
+        fn begin(&mut self) -> crate::ResultFuture<'_, sqlx_core::transaction::Transaction<'_, Self::Database>>
+        where
+            Self: Sized,
+        {
+            sqlx_core::transaction::Transaction::begin(self)
+        }
+
+        fn shrink_buffers(&mut self) {
+            /* do nothing */
+        }
+
+        fn flush(&mut self) -> crate::ResultFuture<'_, ()> {
+            Box::pin(async {Ok(())})
+        }
+
+        fn should_flush(&self) -> bool {
+            false
+        }
+    }
+};
 
 /// ref: <https://developers.cloudflare.com/d1/sql-api/sql-statements/#compatible-pragma-statements>
 #[derive(Clone)]
@@ -105,10 +128,12 @@ const _: () = {
                     .map_err(|e| sqlx_core::Error::Configuration(Box::new(e)))?;
                 if let Some(pragmas) = self.pragmas.collect() {
                     d1.exec(&pragmas.join("\n")).await
-                        .expect(todo!());
-                        //.map_err(|e| sqlx_core::Error::Database(Box::new()))?;
+                        .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))))?;
                 }
-                Ok(D1Connection(Arc::new(d1)))
+                Ok(D1Connection {
+                    inner: Arc::new(d1),
+                    batch: None,
+                })
             }))
         }
 
