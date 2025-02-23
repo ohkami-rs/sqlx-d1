@@ -1,0 +1,16 @@
+[package]
+name          = "sqlx-d1"
+version       = "0.1.0"
+edition       = "2024"
+authors       = ["kanarus <kanarus786@gmail.com>"]
+documentation = "https://docs.rs/sqlx-d1"
+homepage      = "https://crates.io/crates/sqlx-d1"
+repository    = "https://github.com/ohkami-rs/sqlx-d1"
+readme        = "README.md"
+license       = "MIT"
+description   = "SQLx for Cloudflare D1."
+keywords      = ["cloudflare", "d1", "sqlx", "database", "db"]
+categories    = ["database", "asynchronous", "wasm", "rust-patterns", "network-programming"]
+
+[dependencies]
+sqlx-core = "0.8"
