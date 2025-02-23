@@ -1,6 +1,8 @@
 mod error;
 mod type_info;
+mod value;
 mod column;
+mod row;
 mod connection;
 mod transaction;
 mod statement;
@@ -16,7 +18,7 @@ impl sqlx_core::database::Database for D1 {
 
     type TransactionManager = self::transaction::D1TransactionManager;
 
-    type Row = D1Row;
+    type Row = self::row::D1Row;
 
     type QueryResult = D1QueryResult;
 
@@ -24,8 +26,8 @@ impl sqlx_core::database::Database for D1 {
 
     type TypeInfo = self::type_info::D1TypeInfo;
 
-    type Value = D1Value;
-    type ValueRef<'r> = D1ValueRef<'r>;
+    type Value = self::value::D1Value;
+    type ValueRef<'r> = self::value::D1ValueRef<'r>;
 
     type Arguments<'q> = D1Arguments<'q>;
     type ArgumentBuffer<'q> = D1ArgumentValue<'q>;

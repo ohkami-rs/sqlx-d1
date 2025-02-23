@@ -1,7 +1,7 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct D1TypeInfo(D1Type);
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum D1Type {
     Null,
     Real,
@@ -30,6 +30,13 @@ const _: () = {
                 D1Type::Blob => "BLOB",
                 D1Type::Integer => "INTEGER"
             }
+        }
+    }
+
+    impl D1TypeInfo {
+        pub(crate) fn unknown() -> Self {
+            /* most least-bad choice */
+            Self(D1Type::Blob)
         }
     }
 };
