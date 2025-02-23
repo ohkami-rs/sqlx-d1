@@ -5,6 +5,11 @@ impl From<worker::Error> for D1Error {
         Self(worker::send::SendWrapper(e))
     }
 }
+impl D1Error {
+    pub(crate) fn from_rust(e: impl std::error::Error) -> Self {
+        Self(worker::send::SendWrapper(worker::Error::RustError(e.to_string())))
+    }
+}
 
 impl std::fmt::Debug for D1Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

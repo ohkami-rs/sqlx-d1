@@ -1,8 +1,8 @@
 #[derive(Debug)]
 pub struct D1Column {
-    name: sqlx_core::ext::ustr::UStr,
     ordinal: usize,
-    type_info: crate::type_info::D1TypeInfo,
+    name: sqlx_core::ext::ustr::UStr,
+    value: crate::value::D1Value,
 }
 
 impl sqlx_core::column::Column for D1Column {
@@ -17,6 +17,12 @@ impl sqlx_core::column::Column for D1Column {
     }
 
     fn type_info(&self) -> &<Self::Database as sqlx_core::database::Database>::TypeInfo {
-        &self.type_info
+        crate::type_info::D1TypeInfo::unknown()
+    }
+}
+
+impl D1Column {
+    pub(crate) fn value_ref(&self) -> crate::value::D1ValueRef<'_> {
+        sqlx_core::value::Value::as_ref(&self.value)
     }
 }

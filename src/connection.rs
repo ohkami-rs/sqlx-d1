@@ -15,7 +15,7 @@ const _: () = {
             Box::pin(worker::send::SendFuture::new(async {
                 if let Some(batch) = &mut self.batch {
                     self.inner.batch(std::mem::take(&mut batch.0)).await
-                    .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))));
+                        .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))))?;
                 }
                 Ok(())
             }))

@@ -34,8 +34,24 @@ const _: () = {
     }
 
     impl D1TypeInfo {
-        pub(crate) fn unknown() -> Self {
+        pub(crate) fn unknown() -> &'static Self {
             /* most least-bad choice */
+            &Self(D1Type::Blob)
+        }
+
+        pub(crate) fn null() -> Self {
+            Self(D1Type::Null)
+        }
+        pub(crate) fn real() -> Self {
+            Self(D1Type::Real)
+        }
+        pub(crate) fn integer() -> Self {
+            Self(D1Type::Integer)
+        }
+        pub(crate) fn text() -> Self {
+            Self(D1Type::Text)
+        }
+        pub(crate) fn blob() -> Self {
             Self(D1Type::Blob)
         }
     }
