@@ -1,8 +1,8 @@
 #[derive(Debug)]
 pub struct D1Column {
-    ordinal: usize,
-    name: sqlx_core::ext::ustr::UStr,
-    value: crate::value::D1Value,
+    pub(crate) ordinal: usize,
+    pub(crate) name: sqlx_core::ext::ustr::UStr,
+    pub(crate) value: crate::value::D1Value,
 }
 
 impl sqlx_core::column::Column for D1Column {

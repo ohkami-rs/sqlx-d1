@@ -15,8 +15,10 @@ categories    = ["database", "asynchronous", "wasm", "rust-patterns", "network-p
 [dependencies]
 # core dependencies
 sqlx-core = "0.8"
-log       = "0.4" # required for `sqlx_core::connection::ConnectOptions`
 worker    = { version = "0.5", features = ["d1"] }
+futures-core = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
+log       = "0.4" # required for `sqlx_core::connection::ConnectOptions`
 
 # optional dependencies
 serde  = { optional = true, version = "1.0" }

@@ -105,6 +105,7 @@ const _: (/* bool */) = {
     }
 };
 
+/// ref: <https://github.com/launchbadge/sqlx/blob/d4ae6ffd882ed2de1695c652888d809bc068554e/sqlx-sqlite/src/types/text.rs>
 const _: (/* generics text */) = {
     use sqlx_core::types::Text;
 
@@ -137,7 +138,8 @@ const _: (/* generics text */) = {
     }
 };
 
-#[cfg(feature="json")]
+#[cfg(feature = "json")]
+/// ref: <https://github.com/launchbadge/sqlx/blob/d4ae6ffd882ed2de1695c652888d809bc068554e/sqlx-sqlite/src/types/json.rs>
 const _: (/* generic JSON */) = {
     use sqlx_core::types::Json;
 
@@ -169,7 +171,8 @@ const _: (/* generic JSON */) = {
     }
 };
 
-#[cfg(feature="uuid")]
+#[cfg(feature = "uuid")]
+/// ref: <https://github.com/launchbadge/sqlx/blob/d4ae6ffd882ed2de1695c652888d809bc068554e/sqlx-sqlite/src/types/uuid.rs>
 const _: (/* UUID */) = {
     use sqlx_core::types::uuid::{Uuid, fmt::{Hyphenated, Simple}};
 
@@ -233,6 +236,23 @@ const _: (/* UUID */) = {
     }
 };
 
+#[cfg(feature = "chrono")]
+/// ref: <https://github.com/launchbadge/sqlx/blob/d4ae6ffd882ed2de1695c652888d809bc068554e/sqlx-sqlite/src/types/chrono.rs>
 const _: (/* chrono */) = {
+    use sqlx_core::types::chrono::{
+        FixedOffset,
+        DateTime,
+        Local,
+        NaiveDate,
+        NaiveTime,
+        NaiveDateTime,
+        TimeZone,
+        Utc,
+    };
 
+    // impl<Tz: TimeZone> Type<D1> for DateTime<Tz> {
+    //     fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
+    //         
+    //     }
+    // }
 };

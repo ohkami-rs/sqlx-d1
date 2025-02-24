@@ -1,3 +1,4 @@
+use crate::row::D1Row;
 use sqlx_core::Url;
 use std::{pin::Pin, sync::Arc};
 
@@ -23,6 +24,12 @@ const _: () = {
 
         pub(crate) fn rollback(&mut self) {
             self.batch = None;
+        }
+    }
+
+    impl std::fmt::Debug for D1Connection {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("D1Connection").finish()
         }
     }
 
@@ -60,6 +67,76 @@ const _: () = {
 
         fn should_flush(&self) -> bool {
             false
+        }
+    }
+
+    impl<'c> sqlx_core::executor::Executor<'c> for &'c mut D1Connection {
+        type Database = crate::D1;
+
+        fn fetch_many<'e, 'q: 'e, E>(
+            self,
+            query: E,
+        ) -> futures_core::stream::BoxStream<
+            'e,
+            Result<
+                sqlx_core::Either<<Self::Database as sqlx_core::database::Database>::QueryResult, <Self::Database as sqlx_core::database::Database>::Row>,
+                sqlx_core::Error,
+            >,
+        >
+        where
+            'c: 'e,
+            E: 'q + sqlx_core::executor::Execute<'q, Self::Database>,
+        {
+            todo!()
+        }
+
+        fn fetch_optional<'e, 'q: 'e, E>(
+            self,
+            mut query: E,
+        ) -> crate::ResultFuture<'e, Option<<Self::Database as sqlx_core::database::Database>::Row>>
+        where
+            'c: 'e,
+            E: 'q + sqlx_core::executor::Execute<'q, Self::Database>,
+        {
+            let sql = query.sql();
+            let arguments = match query.take_arguments() {
+                Ok(a) => a,
+                Err(e) => return Box::pin(async {Err(sqlx_core::Error::Encode(e))}),
+            };
+
+            Box::pin(worker::send::SendFuture::new(async move {
+                let mut statement = self.inner.prepare(sql);
+                if let Some(a) = arguments {
+                    statement = statement.bind(a.as_ref())
+                        .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from_rust(e))))?;
+                }
+
+                let mut raw_rows = statement.raw_js_value().await
+                    .map_err(crate::D1Error::from_rust)?;
+
+                raw_rows.pop().map(D1Row::from_raw).transpose()
+            }))
+        }
+
+        fn prepare_with<'e, 'q: 'e>(
+            self,
+            sql: &'q str,
+            parameters: &'e [<Self::Database as sqlx_core::database::Database>::TypeInfo],
+        ) -> futures_core::future::BoxFuture<'e, Result<<Self::Database as sqlx_core::database::Database>::Statement<'q>, sqlx_core::Error>>
+        where
+            'c: 'e,
+        {
+            todo!()
+        }
+
+        fn describe<'e, 'q: 'e>(
+            self,
+            sql: &'q str,
+        ) -> crate::ResultFuture<'e, sqlx_core::describe::Describe<Self::Database>>
+        where
+            'c: 'e,
+        {
+            todo!()
         }
     }
 };

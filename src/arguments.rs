@@ -44,3 +44,16 @@ impl<'q> From<worker::wasm_bindgen::JsValue> for D1ArgumentValue {
         Self(crate::value::D1Value::from(value))
     }
 }
+
+impl AsRef<[worker::wasm_bindgen::JsValue]> for D1Arguments {
+    fn as_ref(&self) -> &[worker::wasm_bindgen::JsValue] {
+        let this: &[D1ArgumentValue] = self.0.as_slice();
+        /*
+            SAFETY:
+
+            - `D1ArgumentValue` is newtype of `D1Value`
+            - `D1Value` is newtype of `JsValue`
+        */
+        unsafe {std::mem::transmute(this)}
+    }
+}
