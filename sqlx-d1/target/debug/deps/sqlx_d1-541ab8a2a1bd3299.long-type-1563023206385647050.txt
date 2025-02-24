@@ -1,1 +1,0 @@
-Pin<Box<dyn Future<Output = Result<sqlx_core::transaction::Transaction<'_, D1>, sqlx_core::Error>> + Send>>

@@ -1,2 +1,0 @@
-Pin<Box<dyn futures_core::stream::Stream<Item = Result<either::Either<D1QueryResult, D1Row>, sqlx_core::error::Error>> + core::marker::Send>>
-Pin<Box<dyn futures_util::Stream<Item = Result<sqlx_core::Either<D1QueryResult, D1Row>, sqlx_core::Error>> + std::marker::Send>>

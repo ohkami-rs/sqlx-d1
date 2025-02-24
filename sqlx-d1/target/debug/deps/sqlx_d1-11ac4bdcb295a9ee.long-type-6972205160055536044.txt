@@ -1,1 +1,0 @@
-Pin<Box<(dyn futures_core::Future<Output = Result<Result<std::option::Option<D1Row>, sqlx_core::Error>, sqlx_core::Error>> + std::marker::Send + 'e)>>
