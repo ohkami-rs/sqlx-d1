@@ -1,0 +1,1 @@
+{"rustc":1724976604830752595,"features":"","declared_features":"","target":0,"profile":0,"path":0,"deps":[[6946689283190175495,"build_script_build",false,16973728573024417952]],"local":[{"RerunIfChanged":{"output":"debug/build/wasm-bindgen-c74f7d73039142cb/output","paths":["build.rs"]}}],"rustflags":["-C","link-arg=-fuse-ld=/usr/bin/mold"],"config":0,"compile_kind":0}

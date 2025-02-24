@@ -1,0 +1,17 @@
+[package]
+name    = "ohkami_worker"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = "s"
+
+[dependencies]
+console_error_panic_hook = "0.1"
+ohkami = { version = "0.23", features = ["rt_worker"] }
+worker = { version = "0.5" }
+sqlx = { version = "0.8" }
+sqlx-d1 = { path = "../sqlx-d1" }

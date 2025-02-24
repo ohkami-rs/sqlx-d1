@@ -1,0 +1,11 @@
+/home/kanarus/projects/ohkami-rs/ohkami/samples/worker-bindings/target/wasm32-unknown-unknown/debug/deps/libwriteable-21b6b3c22e26a45c.rmeta: /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/lib.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/cmp.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/impls.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/ops.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/parts_write_adapter.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/testing.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/try_writeable.rs
+
+/home/kanarus/projects/ohkami-rs/ohkami/samples/worker-bindings/target/wasm32-unknown-unknown/debug/deps/writeable-21b6b3c22e26a45c.d: /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/lib.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/cmp.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/impls.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/ops.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/parts_write_adapter.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/testing.rs /home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/try_writeable.rs
+
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/lib.rs:
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/cmp.rs:
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/impls.rs:
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/ops.rs:
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/parts_write_adapter.rs:
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/testing.rs:
+/home/kanarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/writeable-0.5.5/src/try_writeable.rs:
