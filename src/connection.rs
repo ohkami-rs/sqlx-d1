@@ -181,22 +181,25 @@ const _: () = {
                         .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from_rust(e))))?;
                 }
 
-                let mut raw_rows = statement.raw_js_value().await
-                    .map_err(crate::D1Error::from_rust)?;
-
-                raw_rows.pop().map(D1Row::from_raw).transpose()
+                statement.raw_js_value().await
+                    .map_err(crate::D1Error::from_rust)?
+                    .pop()
+                    .map(D1Row::from_raw)
+                    .transpose()
             }))
         }
 
         fn prepare_with<'e, 'q: 'e>(
             self,
             sql: &'q str,
-            parameters: &'e [<Self::Database as sqlx_core::database::Database>::TypeInfo],
-        ) -> futures_core::future::BoxFuture<'e, Result<<Self::Database as sqlx_core::database::Database>::Statement<'q>, sqlx_core::Error>>
+            _parameters: &'e [<Self::Database as sqlx_core::database::Database>::TypeInfo],
+        ) -> crate::ResultFuture<'e, <Self::Database as sqlx_core::database::Database>::Statement<'q>>
         where
             'c: 'e,
         {
-            todo!()
+            Box::pin(async {
+                todo!()//Ok(self.inner.prepare(sql))
+            })
         }
 
         fn describe<'e, 'q: 'e>(
