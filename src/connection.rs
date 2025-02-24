@@ -1,5 +1,6 @@
 use crate::row::D1Row;
-use sqlx_core::Url;
+use sqlx_core::{Url, Either};
+use worker::wasm_bindgen::JsValue;
 use std::{pin::Pin, sync::Arc};
 
 pub struct D1Connection {
@@ -75,11 +76,14 @@ const _: () = {
 
         fn fetch_many<'e, 'q: 'e, E>(
             self,
-            query: E,
+            mut query: E,
         ) -> futures_core::stream::BoxStream<
             'e,
             Result<
-                sqlx_core::Either<<Self::Database as sqlx_core::database::Database>::QueryResult, <Self::Database as sqlx_core::database::Database>::Row>,
+                Either<
+                    <Self::Database as sqlx_core::database::Database>::QueryResult,
+                    <Self::Database as sqlx_core::database::Database>::Row
+                >,
                 sqlx_core::Error,
             >,
         >
@@ -87,7 +91,73 @@ const _: () = {
             'c: 'e,
             E: 'q + sqlx_core::executor::Execute<'q, Self::Database>,
         {
-            todo!()
+            let sql = query.sql();
+            let arguments = match query.take_arguments() {
+                Ok(a) => a,
+                Err(e) => return Box::pin(futures_util::stream::once(async {Err(sqlx_core::Error::Encode(e))})),
+            };
+
+            struct FetchMany<F> {
+                raw_rows_future: F,
+                raw_rows: Option<Vec<JsValue>>,
+            }
+            const _: () = {
+                /* SAFETY: used in single-threaded Workers */
+                unsafe impl<F> Send for FetchMany<F> {}
+
+                impl<F> FetchMany<F> {
+                    fn new(raw_rows_future: F) -> Self {
+                        Self { raw_rows_future, raw_rows: None }
+                    }
+                }
+
+                impl<F> futures_core::Stream for FetchMany<F>
+                where
+                    F: Future<Output = Result<Vec<JsValue>, worker::Error>>,
+                {
+                    type Item = Result<
+                        Either<crate::query_result::D1QueryResult, D1Row>,
+                        sqlx_core::Error
+                    >;
+
+                    fn poll_next(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
+                        use std::task::Poll;
+
+                        fn pop_next(raw_rows: &mut Vec<JsValue>) ->
+                            Option<Result<
+                                Either<crate::query_result::D1QueryResult, D1Row>,
+                                sqlx_core::Error
+                            >>
+                        {
+                            let raw_row = raw_rows.pop()?;
+                            Some(D1Row::from_raw(raw_row).map(Either::Right))
+                        }
+
+                        let this = unsafe {self.get_unchecked_mut()};
+                        match &mut this.raw_rows {
+                            Some(raw_rows) => Poll::Ready(pop_next(raw_rows)),
+                            None => match unsafe {Pin::new_unchecked(&mut this.raw_rows_future)}.poll(cx) {
+                                Poll::Pending => Poll::Pending,
+                                Poll::Ready(Err(e)) => Poll::Ready(Some(Err(
+                                    sqlx_core::Error::Database(Box::new(crate::D1Error::from_rust(e)))
+                                ))),
+                                Poll::Ready(Ok(raw_rows)) => {
+                                    this.raw_rows = Some(raw_rows);
+                                    Poll::Ready(pop_next(unsafe {this.raw_rows.as_mut().unwrap_unchecked()}))
+                                }
+                            }
+                        }                        
+                    }
+                }
+            };
+
+            Box::pin(FetchMany::new(async move {
+                let mut statement = self.inner.prepare(sql);
+                if let Some(a) = arguments {
+                    statement = statement.bind(a.as_ref())?;
+                }
+                statement.raw_js_value().await
+            }))
         }
 
         fn fetch_optional<'e, 'q: 'e, E>(
