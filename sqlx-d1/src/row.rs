@@ -22,6 +22,7 @@ impl sqlx_core::row::Row for D1Row {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
 impl D1Row {
     pub(crate) fn from_raw(raw: worker::wasm_bindgen::JsValue) -> Result<Self, sqlx_core::Error> {
         use worker::wasm_bindgen::JsCast;

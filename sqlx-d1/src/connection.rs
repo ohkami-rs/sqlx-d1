@@ -1,5 +1,5 @@
 use sqlx_core::{Url, Either};
-use std::pin::Pin;
+
 #[cfg(target_arch = "wasm32")]
 use {
     crate::row::D1Row,
