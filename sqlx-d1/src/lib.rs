@@ -10,8 +10,9 @@ mod statement;
 mod query_result;
 mod types;
 
-use error::D1Error;
 type ResultFuture<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
+
+pub use error::D1Error;
 
 pub use connection::{D1Connection, D1ConnectOptions};
 

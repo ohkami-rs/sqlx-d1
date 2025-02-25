@@ -1,13 +1,24 @@
-use crate::row::D1Row;
 use sqlx_core::{Url, Either};
-use worker::wasm_bindgen::JsValue;
-use std::{pin::Pin, sync::Arc};
+use std::pin::Pin;
+#[cfg(target_arch = "wasm32")]
+use {
+    crate::row::D1Row,
+    std::sync::Arc,
+    worker::wasm_bindgen::JsValue,
+};
 
+#[cfg(target_arch = "wasm32")]
 pub struct D1Connection {
     pub(crate) inner: Arc<worker::D1Database>,
     pub(crate) batch: Option<worker::send::SendWrapper<Box<Vec<worker::D1PreparedStatement>>>>,
 }
+#[cfg(not(target_arch = "wasm32"))]
+pub struct D1Connection {
+    pub(crate) inner: sqlx_sqlite::SqliteConnection,
+}
+
 const _: () = {
+    #[cfg(target_arch = "wasm32")]
     impl D1Connection {
         pub(crate) fn begin(&mut self) {
             self.batch = Some(worker::send::SendWrapper(Box::new(Vec::new())));
@@ -76,6 +87,7 @@ const _: () = {
 
         fn fetch_many<'e, 'q: 'e, E>(
             self,
+            #[allow(unused)]
             mut query: E,
         ) -> futures_core::stream::BoxStream<
             'e,
@@ -91,102 +103,115 @@ const _: () = {
             'c: 'e,
             E: 'q + sqlx_core::executor::Execute<'q, Self::Database>,
         {
-            let sql = query.sql();
-            let arguments = match query.take_arguments() {
-                Ok(a) => a,
-                Err(e) => return Box::pin(futures_util::stream::once(async {Err(sqlx_core::Error::Encode(e))})),
-            };
-
-            struct FetchMany<F> {
-                raw_rows_future: F,
-                raw_rows: Option<Vec<JsValue>>,
+            #[cfg(not(target_arch = "wasm32"))] {
+                unreachable!("native `Executor` impl")
             }
-            const _: () = {
-                /* SAFETY: used in single-threaded Workers */
-                unsafe impl<F> Send for FetchMany<F> {}
 
-                impl<F> FetchMany<F> {
-                    fn new(raw_rows_future: F) -> Self {
-                        Self { raw_rows_future, raw_rows: None }
-                    }
+            #[cfg(target_arch = "wasm32")] {
+                let sql = query.sql();
+                let arguments = match query.take_arguments() {
+                    Ok(a) => a,
+                    Err(e) => return Box::pin(futures_util::stream::once(async {Err(sqlx_core::Error::Encode(e))})),
+                };
+
+                struct FetchMany<F> {
+                    raw_rows_future: F,
+                    raw_rows: Option<Vec<JsValue>>,
                 }
+                const _: () = {
+                    /* SAFETY: used in single-threaded Workers */
+                    unsafe impl<F> Send for FetchMany<F> {}
 
-                impl<F> futures_core::Stream for FetchMany<F>
-                where
-                    F: Future<Output = Result<Vec<JsValue>, worker::Error>>,
-                {
-                    type Item = Result<
-                        Either<crate::query_result::D1QueryResult, D1Row>,
-                        sqlx_core::Error
-                    >;
-
-                    fn poll_next(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
-                        use std::task::Poll;
-
-                        fn pop_next(raw_rows: &mut Vec<JsValue>) ->
-                            Option<Result<
-                                Either<crate::query_result::D1QueryResult, D1Row>,
-                                sqlx_core::Error
-                            >>
-                        {
-                            let raw_row = raw_rows.pop()?;
-                            Some(D1Row::from_raw(raw_row).map(Either::Right))
+                    impl<F> FetchMany<F> {
+                        fn new(raw_rows_future: F) -> Self {
+                            Self { raw_rows_future, raw_rows: None }
                         }
-
-                        let this = unsafe {self.get_unchecked_mut()};
-                        match &mut this.raw_rows {
-                            Some(raw_rows) => Poll::Ready(pop_next(raw_rows)),
-                            None => match unsafe {Pin::new_unchecked(&mut this.raw_rows_future)}.poll(cx) {
-                                Poll::Pending => Poll::Pending,
-                                Poll::Ready(Err(e)) => Poll::Ready(Some(Err(
-                                    sqlx_core::Error::Database(Box::new(crate::D1Error::from_rust(e)))
-                                ))),
-                                Poll::Ready(Ok(raw_rows)) => {
-                                    this.raw_rows = Some(raw_rows);
-                                    Poll::Ready(pop_next(unsafe {this.raw_rows.as_mut().unwrap_unchecked()}))
-                                }
-                            }
-                        }                        
                     }
-                }
-            };
 
-            Box::pin(FetchMany::new(async move {
-                let mut statement = self.inner.prepare(sql);
-                if let Some(a) = arguments {
-                    statement = statement.bind(a.as_ref())?;
-                }
-                statement.raw_js_value().await
-            }))
+                    impl<F> futures_core::Stream for FetchMany<F>
+                    where
+                        F: Future<Output = Result<Vec<JsValue>, worker::Error>>,
+                    {
+                        type Item = Result<
+                            Either<crate::query_result::D1QueryResult, D1Row>,
+                            sqlx_core::Error
+                        >;
+
+                        fn poll_next(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
+                            use std::task::Poll;
+
+                            fn pop_next(raw_rows: &mut Vec<JsValue>) ->
+                                Option<Result<
+                                    Either<crate::query_result::D1QueryResult, D1Row>,
+                                    sqlx_core::Error
+                                >>
+                            {
+                                let raw_row = raw_rows.pop()?;
+                                Some(D1Row::from_raw(raw_row).map(Either::Right))
+                            }
+
+                            let this = unsafe {self.get_unchecked_mut()};
+                            match &mut this.raw_rows {
+                                Some(raw_rows) => Poll::Ready(pop_next(raw_rows)),
+                                None => match unsafe {Pin::new_unchecked(&mut this.raw_rows_future)}.poll(cx) {
+                                    Poll::Pending => Poll::Pending,
+                                    Poll::Ready(Err(e)) => Poll::Ready(Some(Err(
+                                        sqlx_core::Error::Database(Box::new(crate::D1Error::from_rust(e)))
+                                    ))),
+                                    Poll::Ready(Ok(raw_rows)) => {
+                                        this.raw_rows = Some(raw_rows);
+                                        Poll::Ready(pop_next(unsafe {this.raw_rows.as_mut().unwrap_unchecked()}))
+                                    }
+                                }
+                            }                        
+                        }
+                    }
+                };
+
+                Box::pin(FetchMany::new(async move {
+                    let mut statement = self.inner.prepare(sql);
+                    if let Some(a) = arguments {
+                        statement = statement.bind(a.as_ref())?;
+                    }
+                    statement.raw_js_value().await
+                }))
+            }
         }
 
         fn fetch_optional<'e, 'q: 'e, E>(
             self,
+            #[allow(unused)]
             mut query: E,
         ) -> crate::ResultFuture<'e, Option<<Self::Database as sqlx_core::database::Database>::Row>>
         where
             'c: 'e,
             E: 'q + sqlx_core::executor::Execute<'q, Self::Database>,
         {
-            let sql = query.sql();
-            let arguments = match query.take_arguments() {
-                Ok(a) => a,
-                Err(e) => return Box::pin(async {Err(sqlx_core::Error::Encode(e))}),
-            };
+            #[cfg(not(target_arch = "wasm32"))] {
+                unreachable!("native `Executor` impl")
+            }
 
-            Box::pin(worker::send::SendFuture::new(async move {
-                let mut statement = self.inner.prepare(sql);
-                if let Some(a) = arguments {
-                    statement = statement.bind(a.as_ref())
-                        .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from_rust(e))))?;
-                }
+            #[cfg(target_arch = "wasm32")] {
+                let sql = query.sql();
+                let arguments = match query.take_arguments() {
+                    Ok(a) => a,
+                    Err(e) => return Box::pin(async {Err(sqlx_core::Error::Encode(e))}),
+                };
 
-                statement.raw_js_value().await
-                    .map_err(crate::D1Error::from_rust)?
-                    .pop()
-                    .map(D1Row::from_raw)
-                    .transpose()
-            }))
+                Box::pin(worker::send::SendFuture::new(async move {
+                    let mut statement = self.inner.prepare(sql);
+                    if let Some(a) = arguments {
+                        statement = statement.bind(a.as_ref())
+                            .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from_rust(e))))?;
+                    }
+
+                    statement.raw_js_value().await
+                        .map_err(crate::D1Error::from_rust)?
+                        .pop()
+                        .map(D1Row::from_raw)
+                        .transpose()
+                }))
+            }
         }
 
         fn prepare_with<'e, 'q: 'e>(
@@ -206,24 +231,38 @@ const _: () = {
 
         fn describe<'e, 'q: 'e>(
             self,
-            _sql: &'q str,
+            #[allow(unused)]
+            sql: &'q str,
         ) -> crate::ResultFuture<'e, sqlx_core::describe::Describe<Self::Database>>
         where
             'c: 'e,
         {
-            unimplemented!("sqlx-d1 doesn't support compile-time verification in the query macros.")
-            // #[cfg(target_arch = "wasm32")] {
-            //     unreachable!("unexpected call of `D1Connection::describe`")
-            // }
-            // #[cfg(not(target_arch = "wasm32"))] {
-            //     Box::pin(async {
-            //         Ok(sqlx_core::describe::Describe {
-            //             columns: vec![],
-            //             nullable: vec![],
-            //             parameters: None,
-            //         })
-            //     })
-            // }
+            #[cfg(target_arch = "wasm32")] {
+                unimplemented!("sqlx-d1 doesn't support compile-time verification in the query macros.")
+            }
+            #[cfg(not(target_arch = "wasm32"))] {
+                /* compile-time verification by macros */
+
+                Box::pin(async {
+                    let sqlx_core::describe::Describe {
+                        columns,
+                        parameters,
+                        nullable
+                    } = <&mut sqlx_sqlite::SqliteConnection as sqlx_core::executor::Executor>::describe(
+                        &mut self.inner,
+                        sql
+                    ).await?;
+                    
+                    Ok(sqlx_core::describe::Describe {
+                        parameters: parameters.map(|ps| match ps {
+                            Either::Left(type_infos) => Either::Left(type_infos.into_iter().map(crate::type_info::D1TypeInfo::from_sqlite).collect()),
+                            Either::Right(n) => Either::Right(n)
+                        }),
+                        columns: columns.into_iter().map(crate::column::D1Column::from_sqlite).collect(),
+                        nullable
+                    })
+                })
+            }
         }
     }
 };
@@ -231,11 +270,15 @@ const _: () = {
 /// ref: <https://developers.cloudflare.com/d1/sql-api/sql-statements/#compatible-pragma-statements>
 #[derive(Clone)]
 pub struct D1ConnectOptions {
-    env: worker::Env,
-    binding: &'static str,
+    binding: std::borrow::Cow<'static, str>,
     pragmas: TogglePragmas,
+    #[cfg(target_arch = "wasm32")]
+    env: worker::Env,
+    #[cfg(not(target_arch = "wasm32"))]
+    sqlite_path: std::path::PathBuf,
 }
 const _: () = {
+    #[cfg(target_arch = "wasm32")]
     const URL_CONVERSION_UNSUPPORTED_MESSAGE: &'static str = "\
         `sqlx_d1::D1ConnectOptions` doesn't support conversion between `Url`. \
         Consider connect from options created by `D1ConnectOptions::new`. \
@@ -246,8 +289,9 @@ const _: () = {
     ";
 
     impl D1ConnectOptions {
+        #[cfg(target_arch = "wasm32")]
         pub fn new(env: worker::Env, binding: &'static str) -> Self {
-            Self { env, binding, pragmas: TogglePragmas::new() }
+            Self { env, binding: binding.into(), pragmas: TogglePragmas::new() }
         }
     }
 
@@ -263,42 +307,128 @@ const _: () = {
     impl std::str::FromStr for D1ConnectOptions {
         type Err = sqlx_core::Error;
 
-        fn from_str(_: &str) -> Result<Self, Self::Err> {
-            Err(sqlx_core::Error::Configuration(From::from(
-                URL_CONVERSION_UNSUPPORTED_MESSAGE
-            )))
+        fn from_str(_binding: &str) -> Result<Self, Self::Err> {
+            #[cfg(target_arch = "wasm32")] {
+                Err(sqlx_core::Error::Configuration(From::from(
+                    URL_CONVERSION_UNSUPPORTED_MESSAGE
+                )))
+            }
+
+            #[cfg(not(target_arch = "wasm32"))] {
+                use std::{io, fs, path::{Path, PathBuf}};
+
+                fn maybe_miniflare_d1_dir_of(dir: impl AsRef<Path>) -> PathBuf {
+                    dir.as_ref()
+                        .join(".wrangler")
+                        .join("state")
+                        .join("v3")
+                        .join("d1")
+                        .join("miniflare-D1DatabaseObject")
+                }
+            
+                const PACKAGE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
+
+                let (candidate_1, candidate_2) = (
+                    maybe_miniflare_d1_dir_of(PACKAGE_ROOT),
+                    maybe_miniflare_d1_dir_of(".")
+                );
+
+                let sqlite_path = (|| -> io::Result<PathBuf> {                    
+                    let miniflare_d1_dir = match (
+                        fs::exists(&candidate_1),
+                        fs::exists(&candidate_2)
+                    ) {
+                        (Ok(true), _) => candidate_1,
+                        (_, Ok(true)) => candidate_2,
+                        (Err(e), _) | (_, Err(e)) => return Err(e),
+                        (Ok(false), Ok(false)) => return Err(io::Error::new(
+                            io::ErrorKind::NotFound,
+                            "miniflare's D1 emulating directory not found"
+                        )),
+                    };
+                    
+                    let [sqlite_path] = fs::read_dir(miniflare_d1_dir)?
+                        .filter_map(|r| r.as_ref().ok().and_then(|e| {
+                            let path = e.path();
+                            path.extension()
+                                .is_some_and(|ex| ex == "sqlite")
+                                .then_some(path)
+                        }))
+                        .collect::<Vec<_>>()
+                        .try_into()
+                        .map_err(|_| io::Error::new(
+                            io::ErrorKind::Other,
+                            "Currently, sqlx_d1 doesn't support multiple D1 bindings!"
+                        ))?;
+
+                    Ok(sqlite_path)
+                })().map_err(|_| sqlx_core::Error::WorkerCrashed)?;
+                    
+                Ok(Self {
+                    binding: _binding.to_string().into(),
+                    pragmas: TogglePragmas::new(),
+                    sqlite_path
+                })
+            }
         }
     }
 
     impl sqlx_core::connection::ConnectOptions for D1ConnectOptions {
         type Connection = D1Connection;
 
-        fn from_url(_: &Url) -> Result<Self, sqlx_core::Error> {
-            Err(sqlx_core::Error::Configuration(From::from(
-                URL_CONVERSION_UNSUPPORTED_MESSAGE
-            )))
+        fn from_url(_url: &Url) -> Result<Self, sqlx_core::Error> {
+            #[cfg(target_arch = "wasm32")] {
+                Err(sqlx_core::Error::Configuration(From::from(
+                    URL_CONVERSION_UNSUPPORTED_MESSAGE
+                )))
+            }
+            #[cfg(not(target_arch = "wasm32"))] {
+                _url.as_str().parse()
+            }
         }
 
         fn to_url_lossy(&self) -> Url {
-            unreachable!("{}", URL_CONVERSION_UNSUPPORTED_MESSAGE)
+            unreachable!("`sqlx_d1::ConnectOptions` doesn't support `ConnectOptions::to_url_lossy`")
         }
 
-        fn connect(&self) -> Pin<Box<dyn Future<Output = Result<Self::Connection, sqlx_core::Error>> + Send + '_>>
+        fn connect(&self) -> crate::ResultFuture<'_, Self::Connection>
         where
             Self::Connection: Sized,
         {
-            Box::pin(worker::send::SendFuture::new(async move {
-                let d1 = self.env.d1(self.binding)
-                    .map_err(|e| sqlx_core::Error::Configuration(Box::new(e)))?;
-                if let Some(pragmas) = self.pragmas.collect() {
-                    d1.exec(&pragmas.join("\n")).await
+            #[cfg(target_arch = "wasm32")] {
+                Box::pin(worker::send::SendFuture::new(async move {
+                    let d1 = self.env.d1(self.binding)
+                        .map_err(|e| sqlx_core::Error::Configuration(Box::new(e)))?;
+
+                    if let Some(pragmas) = self.pragmas.collect() {
+                        d1.exec(&pragmas.join("\n")).await
                         .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))))?;
-                }
-                Ok(D1Connection {
-                    inner: Arc::new(d1),
-                    batch: None,
+                    }
+
+                    Ok(D1Connection {
+                        inner: Arc::new(d1),
+                        batch: None,
+                    })
+                }))
+            }
+
+            #[cfg(not(target_arch = "wasm32"))] {
+                Box::pin(async move {
+                    use sqlx_core::{connection::Connection, executor::Executor};
+
+                    let mut sqlite_conn = sqlx_sqlite::SqliteConnection::connect(
+                        self.sqlite_path.to_str().ok_or(sqlx_core::Error::WorkerCrashed)?
+                    ).await?;
+
+                    if let Some(pragmas) = self.pragmas.collect() {
+                        for pragma in pragmas {
+                            sqlite_conn.execute(pragma).await?;
+                        }
+                    }
+                    
+                    Ok(D1Connection { inner: sqlite_conn })
                 })
-            }))
+            }
         }
 
         fn log_statements(self, _: log::LevelFilter) -> Self {

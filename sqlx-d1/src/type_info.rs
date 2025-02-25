@@ -56,3 +56,20 @@ const _: () = {
         }
     }
 };
+
+#[cfg(not(target_arch = "wasm32"))]
+impl D1TypeInfo {
+    pub(crate) fn from_sqlite(sqlite_type_info: sqlx_sqlite::SqliteTypeInfo) -> Self {
+        use sqlx_core::type_info::TypeInfo as _;
+
+        /* ref: <https://github.com/launchbadge/sqlx/blob/25efb2f7f410e0f0aa3fee1d8467429066dbcdf8/sqlx-sqlite/src/type_info.rs#L56-L71> */
+        match sqlite_type_info.name() {
+            "NULL" => Self::null(),
+            "TEXT" => Self::text(),
+            "REAL" => Self::real(),
+            "BLOB" => Self::blob(),
+            "INTEGER" | "NUMERIC" | "BOOLEAN" => Self::integer(),
+            _ => *Self::unknown()
+        }
+    }
+}

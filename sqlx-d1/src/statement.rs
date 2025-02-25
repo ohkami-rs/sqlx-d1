@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 use sqlx_core::impl_statement_query;
 
 pub struct D1Statement<'q> {

@@ -8,27 +8,29 @@ homepage      = "https://crates.io/crates/sqlx-d1"
 repository    = "https://github.com/ohkami-rs/sqlx-d1"
 readme        = "README.md"
 license       = "MIT"
-description   = "SQLx for Cloudflare D1."
+description   = "SQLx for Cloudflare D1"
 keywords      = ["cloudflare", "d1", "sqlx", "database", "db"]
 categories    = ["database", "asynchronous", "wasm", "rust-patterns", "network-programming"]
 
+[features]
+# DEBUG
+default = ["json", "chrono", "uuid"]
+json    = ["sqlx-core/json",   "dep:serde"]
+chrono  = ["sqlx-core/chrono", "dep:chrono"]
+uuid    = ["sqlx-core/uuid",   "dep:uuid"]
+
 [dependencies]
 # core dependencies
-sqlx-core = "0.8"
-worker    = { version = "0.5", features = ["d1"] }
+sqlx-core    = "0.8"
+worker       = { version = "0.5", features = ["d1"] }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
-log       = "0.4" # required for `sqlx_core::connection::ConnectOptions`
+log          = "0.4" # required for `sqlx_core::connection::ConnectOptions`
 
 # optional dependencies
 serde  = { optional = true, version = "1.0" }
 chrono = { optional = true, version = "0.4", default-features = false, features = ["std", "wasmbind"] }
 uuid   = { optional = true, version = "1.14" }
 
-[features]
-json   = ["sqlx-core/json",   "dep:serde"]
-chrono = ["sqlx-core/chrono", "dep:chrono"]
-uuid   = ["sqlx-core/uuid",   "dep:uuid"]
-
-# DEBUG
-default = ["json", "chrono", "uuid"]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sqlx-sqlite = { version = "0.8", features = ["bundled"] }
