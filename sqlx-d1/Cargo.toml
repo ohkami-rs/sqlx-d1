@@ -14,10 +14,12 @@ categories    = ["database", "asynchronous", "wasm", "rust-patterns", "network-p
 
 [features]
 # DEBUG
-default = ["json", "chrono", "uuid"]
-json    = ["sqlx-core/json",   "dep:serde"]
-chrono  = ["sqlx-core/chrono", "dep:chrono"]
-uuid    = ["sqlx-core/uuid",   "dep:uuid"]
+# default = ["json", "uuid"]
+
+json = ["sqlx-core/json", "dep:serde"]
+uuid = ["sqlx-core/uuid", "dep:uuid"]
+
+# time not implemented on this platform
 
 [dependencies]
 # core dependencies
@@ -29,7 +31,6 @@ log          = "0.4" # required for `sqlx_core::connection::ConnectOptions`
 
 # optional dependencies
 serde  = { optional = true, version = "1.0" }
-chrono = { optional = true, version = "0.4", default-features = false, features = ["std", "wasmbind"] }
 uuid   = { optional = true, version = "1.14" }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

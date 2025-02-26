@@ -3,7 +3,7 @@ use sqlx_core::{Url, Either};
 #[cfg(target_arch = "wasm32")]
 use {
     crate::row::D1Row,
-    std::sync::Arc,
+    std::{sync::Arc, pin::Pin},
     worker::wasm_bindgen::JsValue,
 };
 
@@ -270,10 +270,9 @@ const _: () = {
 /// ref: <https://developers.cloudflare.com/d1/sql-api/sql-statements/#compatible-pragma-statements>
 #[derive(Clone)]
 pub struct D1ConnectOptions {
-    binding: std::borrow::Cow<'static, str>,
     pragmas: TogglePragmas,
     #[cfg(target_arch = "wasm32")]
-    env: worker::Env,
+    d1: std::sync::Arc<worker::D1Database>,
     #[cfg(not(target_arch = "wasm32"))]
     sqlite_path: std::path::PathBuf,
 }
@@ -290,15 +289,14 @@ const _: () = {
 
     impl D1ConnectOptions {
         #[cfg(target_arch = "wasm32")]
-        pub fn new(env: worker::Env, binding: &'static str) -> Self {
-            Self { env, binding: binding.into(), pragmas: TogglePragmas::new() }
+        pub fn new(d1: worker::D1Database) -> Self {
+            Self { d1: std::sync::Arc::new(d1), pragmas: TogglePragmas::new() }
         }
     }
 
     impl std::fmt::Debug for D1ConnectOptions {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             f.debug_struct("D1ConnectOptions")
-                .field("binding", &self.binding)
                 .field("pragmas", &self.pragmas)
                 .finish()
         }
@@ -307,7 +305,7 @@ const _: () = {
     impl std::str::FromStr for D1ConnectOptions {
         type Err = sqlx_core::Error;
 
-        fn from_str(_binding: &str) -> Result<Self, Self::Err> {
+        fn from_str(_: &str) -> Result<Self, Self::Err> {
             #[cfg(target_arch = "wasm32")] {
                 Err(sqlx_core::Error::Configuration(From::from(
                     URL_CONVERSION_UNSUPPORTED_MESSAGE
@@ -365,7 +363,6 @@ const _: () = {
                 })().map_err(|_| sqlx_core::Error::WorkerCrashed)?;
                     
                 Ok(Self {
-                    binding: _binding.to_string().into(),
                     pragmas: TogglePragmas::new(),
                     sqlite_path
                 })
@@ -397,16 +394,13 @@ const _: () = {
         {
             #[cfg(target_arch = "wasm32")] {
                 Box::pin(worker::send::SendFuture::new(async move {
-                    let d1 = self.env.d1(self.binding)
-                        .map_err(|e| sqlx_core::Error::Configuration(Box::new(e)))?;
-
                     if let Some(pragmas) = self.pragmas.collect() {
-                        d1.exec(&pragmas.join("\n")).await
-                        .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))))?;
+                        self.d1.exec(&pragmas.join("\n")).await
+                            .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))))?;
                     }
 
                     Ok(D1Connection {
-                        inner: Arc::new(d1),
+                        inner: self.d1.clone(),
                         batch: None,
                     })
                 }))

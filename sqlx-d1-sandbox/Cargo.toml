@@ -11,7 +11,11 @@ opt-level = "s"
 
 [dependencies]
 console_error_panic_hook = "0.1"
-ohkami = { version = "0.23", features = ["rt_worker"] }
 worker = { version = "0.5" }
 sqlx = { version = "0.8" }
 sqlx-d1 = { path = "../sqlx-d1" }
+
+[dependencies.ohkami]
+git = "https://github.com/ohkami-rs/ohkami"
+branch = "v0.24"
+features = ["rt_worker"]
