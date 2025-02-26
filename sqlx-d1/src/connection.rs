@@ -288,7 +288,8 @@ const _: () = {
             Box::pin(worker::send::SendFuture::new(async move {
                 let mut statement = self.inner.prepare(sql).unwrap();
                 if let Some(a) = arguments {
-                    statement = statement.bind(a.as_ref().iter().collect())
+                    statement = statement
+                        .bind(a.as_ref().iter().collect())
                         .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from(e))))?;
                 }
 

@@ -87,6 +87,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                     WHERE id = ?
                 ";
                 let user = sqlx::query_as::<D1, User>(sql)
+                    .bind(id)
                     .fetch_optional(c)
                     .await?
                     .ok_or_else(|| Error::ResourceNotFound(format!(
