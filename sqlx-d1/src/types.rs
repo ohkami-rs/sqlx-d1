@@ -4,11 +4,6 @@ use sqlx_core::decode::Decode;
 use sqlx_core::types::Type;
 use worker::{serde_wasm_bindgen, wasm_bindgen::JsValue};
 
-// impl<T: Type<D1>> Type<D1> for Option<T> {
-//     fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
-//         <T as Type<D1>>::type_info()
-//     }
-// }
 impl<'q, E: Encode<'q, D1>> Encode<'q, D1> for Option<E> {
     fn encode_by_ref(
         &self,

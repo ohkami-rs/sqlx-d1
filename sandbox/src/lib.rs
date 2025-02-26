@@ -22,9 +22,9 @@ struct CreateUserRequest<'req> {
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
-    #[error("Error from sqlx: `{0}`")]
+    #[error("Error from sqlx: {0}")]
     Sqlx(#[from] sqlx::Error),
-    #[error("Error not found `{0}`")]
+    #[error("Error not found {0}")]
     ResourceNotFound(String),
 }
 impl IntoResponse for Error {

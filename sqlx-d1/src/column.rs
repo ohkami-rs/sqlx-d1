@@ -1,6 +1,9 @@
+use crate::type_info::D1TypeInfo;
+
 pub struct D1Column {
     pub(crate) ordinal: usize,
     pub(crate) name: sqlx_core::ext::ustr::UStr,
+    pub(crate) type_info: D1TypeInfo,
 }
 
 impl std::fmt::Debug for D1Column {
@@ -24,7 +27,7 @@ impl sqlx_core::column::Column for D1Column {
     }
 
     fn type_info(&self) -> &<Self::Database as sqlx_core::database::Database>::TypeInfo {
-        crate::type_info::D1TypeInfo::unknown()
+        &self.type_info
     }
 }
 
@@ -57,6 +60,7 @@ impl D1Column {
         Self {
             ordinal: sqlite_column.ordinal(),
             name: sqlite_column.name().to_string().into(),
+            type_info: D1TypeInfo::from_sqlite(sqlite_column.type_info().clone()),
         }
     }
 }

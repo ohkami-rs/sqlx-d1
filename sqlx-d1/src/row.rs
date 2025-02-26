@@ -42,6 +42,7 @@ impl D1Row {
             columns.push(D1Column {
                 ordinal: i,
                 name: key.as_string().unwrap().into(),
+                type_info: crate::type_info::D1TypeInfo::from_raw(&value),
             });
             values.push(
                 value.into()
