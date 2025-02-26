@@ -11,7 +11,7 @@ impl sqlx_core::transaction::TransactionManager for D1TransactionManager {
             unreachable!("Native `TransactionManager` impl")
         }
         #[cfg(target_arch = "wasm32")] {
-            Box::pin(async {conn.begin(); Ok(())})
+            Box::pin(async {Ok(())})
         }
     }
 
@@ -23,7 +23,7 @@ impl sqlx_core::transaction::TransactionManager for D1TransactionManager {
             unreachable!("Native `TransactionManager` impl")
         }
         #[cfg(target_arch = "wasm32")] {
-            conn.commit()
+            Box::pin(async {Ok(())})
         }
     }
 
@@ -35,7 +35,7 @@ impl sqlx_core::transaction::TransactionManager for D1TransactionManager {
             unreachable!("Native `TransactionManager` impl")
         }
         #[cfg(target_arch = "wasm32")] {
-            Box::pin(async {conn.rollback(); Ok(())})
+            Box::pin(async {Ok(())})
         }
     }
 

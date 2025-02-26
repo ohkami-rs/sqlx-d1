@@ -20,6 +20,27 @@ impl sqlx_core::column::Column for D1Column {
     }
 }
 
+impl sqlx_core::column::ColumnIndex<crate::row::D1Row> for &'_ str {
+    fn index(&self, row: &crate::row::D1Row) -> Result<usize, sqlx_core::Error> {
+        use sqlx_core::row::Row as _;
+        row.columns()
+            .iter()
+            .position(|c| &*c.name == *self)
+            .ok_or_else(|| sqlx_core::Error::ColumnNotFound(self.to_string()))
+    }
+}
+impl sqlx_core::column::ColumnIndex<crate::row::D1Row> for usize {
+    fn index(&self, row: &crate::row::D1Row) -> Result<usize, sqlx_core::Error> {
+        use sqlx_core::row::Row as _;
+        (*self <= row.columns().len())
+            .then_some(*self)
+            .ok_or_else(|| sqlx_core::Error::ColumnIndexOutOfBounds {
+                index: *self,
+                len: row.columns().len()
+            })
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 impl D1Column {
     pub(crate) fn from_sqlite(sqlite_column: sqlx_sqlite::SqliteColumn) -> Self {

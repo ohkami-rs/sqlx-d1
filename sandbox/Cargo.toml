@@ -11,6 +11,7 @@ opt-level = "s"
 
 [dependencies]
 console_error_panic_hook = "0.1"
+thiserror = "2.0"
 worker = { version = "0.5" }
 sqlx = { version = "0.8" }
 sqlx-d1 = { path = "../sqlx-d1" }

@@ -36,7 +36,7 @@ impl sqlx_core::database::Database for D1 {
     type ValueRef<'r> = self::value::D1ValueRef<'r>;
 
     type Arguments<'q> = self::arguments::D1Arguments;
-    type ArgumentBuffer<'q> = Vec<self::arguments::D1ArgumentValue>;
+    type ArgumentBuffer<'q> = Vec<self::value::D1Value>;
 
     type Statement<'q> = self::statement::D1Statement<'q>;
 

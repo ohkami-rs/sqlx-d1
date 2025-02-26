@@ -1,8 +1,30 @@
-use crate::{D1, type_info::D1TypeInfo, arguments::D1ArgumentValue, error::D1Error};
+use crate::{D1, type_info::D1TypeInfo, value::D1Value, error::D1Error};
 use sqlx_core::encode::{IsNull, Encode};
 use sqlx_core::decode::Decode;
 use sqlx_core::types::Type;
 use worker::{serde_wasm_bindgen, wasm_bindgen::JsValue};
+
+// impl<T: Type<D1>> Type<D1> for Option<T> {
+//     fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
+//         <T as Type<D1>>::type_info()
+//     }
+// }
+impl<'q, E: Encode<'q, D1>> Encode<'q, D1> for Option<E> {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
+    ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
+        match self {
+            Some(e) => {
+                <E as Encode<'q, D1>>::encode_by_ref(e, buf)
+            }
+            None => {
+                buf.push(D1Value::null());
+                Ok(IsNull::Yes)
+            }
+        }
+    }
+}
 
 macro_rules! serialize {
     ($q:lifetime) => {
@@ -10,7 +32,7 @@ macro_rules! serialize {
             &self,
             buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<$q>,
         ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
-            buf.push(D1ArgumentValue::from(serde_wasm_bindgen::to_value(self).map_err(D1Error::from_rust)?));
+            buf.push(D1Value::from(serde_wasm_bindgen::to_value(self).map_err(D1Error::from_rust)?));
             Ok(IsNull::No)            
         }
     };
@@ -93,7 +115,7 @@ const _: (/* bool */) = {
             &self,
             buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
         ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
-            buf.push(D1ArgumentValue::from(JsValue::from_f64(if *self {1.} else {0.})));
+            buf.push(D1Value::from(JsValue::from_f64(if *self {1.} else {0.})));
             Ok(IsNull::No)
         }
     }
@@ -234,25 +256,4 @@ const _: (/* UUID */) = {
             Ok(uuid.simple())
         }
     }
-};
-
-#[cfg(feature = "chrono")]
-/// ref: <https://github.com/launchbadge/sqlx/blob/d4ae6ffd882ed2de1695c652888d809bc068554e/sqlx-sqlite/src/types/chrono.rs>
-const _: (/* chrono */) = {
-    use sqlx_core::types::chrono::{
-        FixedOffset,
-        DateTime,
-        Local,
-        NaiveDate,
-        NaiveTime,
-        NaiveDateTime,
-        TimeZone,
-        Utc,
-    };
-
-    // impl<Tz: TimeZone> Type<D1> for DateTime<Tz> {
-    //     fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
-    //         
-    //     }
-    // }
 };

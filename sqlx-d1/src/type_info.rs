@@ -39,19 +39,19 @@ const _: () = {
             &Self(D1Type::Blob)
         }
 
-        pub(crate) fn null() -> Self {
+        pub const fn null() -> Self {
             Self(D1Type::Null)
         }
-        pub(crate) fn real() -> Self {
+        pub const fn real() -> Self {
             Self(D1Type::Real)
         }
-        pub(crate) fn integer() -> Self {
+        pub const fn integer() -> Self {
             Self(D1Type::Integer)
         }
-        pub(crate) fn text() -> Self {
+        pub const fn text() -> Self {
             Self(D1Type::Text)
         }
-        pub(crate) fn blob() -> Self {
+        pub const fn blob() -> Self {
             Self(D1Type::Blob)
         }
     }

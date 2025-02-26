@@ -1,10 +1,6 @@
-pub struct D1ArgumentValue(
-    crate::value::D1Value
-);
-
 #[derive(Default)]
 pub struct D1Arguments(
-    Vec<D1ArgumentValue>
+    Vec<crate::value::D1Value>
 );
 
 impl<'q> sqlx_core::arguments::Arguments<'q> for D1Arguments {
@@ -27,7 +23,7 @@ impl<'q> sqlx_core::arguments::Arguments<'q> for D1Arguments {
         match value.encode(&mut self.0) {
             Ok(sqlx_core::encode::IsNull::No) => (),
             Ok(sqlx_core::encode::IsNull::Yes) => {
-                self.0.push(D1ArgumentValue(crate::value::D1Value::null()));
+                self.0.push(crate::value::D1Value::null());
             }
             Err(e) => {
                 self.0.truncate(len_before_encode);
@@ -45,21 +41,11 @@ impl<'q> sqlx_core::arguments::IntoArguments<'q, crate::D1> for D1Arguments {
     }
 }
 
-impl<'q> From<worker::wasm_bindgen::JsValue> for D1ArgumentValue {
-    fn from(value: worker::wasm_bindgen::JsValue) -> Self {
-        Self(crate::value::D1Value::from(value))
-    }
-}
-
 impl AsRef<[worker::wasm_bindgen::JsValue]> for D1Arguments {
     fn as_ref(&self) -> &[worker::wasm_bindgen::JsValue] {
-        let this: &[D1ArgumentValue] = self.0.as_slice();
-        /*
-            SAFETY:
-
-            - `D1ArgumentValue` is newtype of `D1Value`
-            - `D1Value` is newtype of `JsValue`
-        */
+        let this: &[crate::value::D1Value] = self.0.as_slice();
+        
+        /* SAFETY: `D1Value` is newtype of `JsValue` */
         unsafe {std::mem::transmute(this)}
     }
 }
