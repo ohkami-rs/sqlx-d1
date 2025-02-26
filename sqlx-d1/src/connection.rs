@@ -2,24 +2,28 @@ use sqlx_core::{Url, Either};
 
 #[cfg(target_arch = "wasm32")]
 use {
-    crate::row::D1Row,
-    std::{sync::Arc, pin::Pin},
-    worker::wasm_bindgen::JsValue,
+    crate::{D1Error, row::D1Row},
+    std::pin::Pin,
+    worker::{wasm_bindgen::JsValue, wasm_bindgen_futures::JsFuture, js_sys},
 };
 
 pub struct D1Connection {
     #[cfg(target_arch = "wasm32")]
-    pub(crate) inner: Arc<worker::D1Database>,
+    pub(crate) inner: worker_sys::D1Database,
 
     #[cfg(not(target_arch = "wasm32"))]
     pub(crate) inner: sqlx_sqlite::SqliteConnection,
 }
 
 const _: () = {
+    /* SAFETY: used in single-threaded Workers */
+    unsafe impl Send for D1Connection {}
+    unsafe impl Sync for D1Connection {}
+
     #[cfg(target_arch = "wasm32")]
     impl D1Connection {
         pub fn new(d1: worker::D1Database) -> Self {
-            Self { inner: std::sync::Arc::new(d1) }
+            Self { inner: unsafe {std::mem::transmute(d1)} }
         }
     }
 
@@ -201,7 +205,7 @@ const _: () = {
 
             struct FetchMany<F> {
                 raw_rows_future: F,
-                raw_rows: Option<Vec<JsValue>>,
+                raw_rows: Option<js_sys::ArrayIntoIter>,
             }
             const _: () = {
                 /* SAFETY: used in single-threaded Workers */
@@ -215,7 +219,7 @@ const _: () = {
 
                 impl<F> futures_core::Stream for FetchMany<F>
                 where
-                    F: Future<Output = Result<Vec<JsValue>, worker::Error>>,
+                    F: Future<Output = Result<Option<js_sys::Array>, JsValue>>,
                 {
                     type Item = Result<
                         Either<crate::query_result::D1QueryResult, D1Row>,
@@ -225,13 +229,13 @@ const _: () = {
                     fn poll_next(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Option<Self::Item>> {
                         use std::task::Poll;
 
-                        fn pop_next(raw_rows: &mut Vec<JsValue>) ->
+                        fn pop_next(raw_rows: &mut js_sys::ArrayIntoIter) ->
                             Option<Result<
                                 Either<crate::query_result::D1QueryResult, D1Row>,
                                 sqlx_core::Error
                             >>
                         {
-                            let raw_row = raw_rows.pop()?;
+                            let raw_row = raw_rows.next()?;
                             Some(D1Row::from_raw(raw_row).map(Either::Right))
                         }
 
@@ -241,10 +245,10 @@ const _: () = {
                             None => match unsafe {Pin::new_unchecked(&mut this.raw_rows_future)}.poll(cx) {
                                 Poll::Pending => Poll::Pending,
                                 Poll::Ready(Err(e)) => Poll::Ready(Some(Err(
-                                    sqlx_core::Error::Database(Box::new(crate::D1Error::from_rust(e)))
+                                    sqlx_core::Error::from(D1Error::from(e))
                                 ))),
-                                Poll::Ready(Ok(raw_rows)) => {
-                                    this.raw_rows = Some(raw_rows);
+                                Poll::Ready(Ok(maybe_raw_rows)) => {
+                                    this.raw_rows = Some(maybe_raw_rows.unwrap_or_else(js_sys::Array::new).into_iter());
                                     Poll::Ready(pop_next(unsafe {this.raw_rows.as_mut().unwrap_unchecked()}))
                                 }
                             }
@@ -254,11 +258,15 @@ const _: () = {
             };
 
             Box::pin(FetchMany::new(async move {
-                let mut statement = self.inner.prepare(sql);
+                let mut statement = self.inner.prepare(sql).unwrap();
                 if let Some(a) = arguments {
-                    statement = statement.bind(a.as_ref())?;
+                    statement = statement.bind(a.as_ref().iter().collect())?;
                 }
-                statement.raw_js_value().await
+
+                let d1_result_jsvalue = JsFuture::from(statement.all()?)
+                    .await?;
+                worker_sys::D1Result::from(d1_result_jsvalue)
+                    .results()
             }))
         }
 
@@ -278,17 +286,20 @@ const _: () = {
             };
 
             Box::pin(worker::send::SendFuture::new(async move {
-                let mut statement = self.inner.prepare(sql);
+                let mut statement = self.inner.prepare(sql).unwrap();
                 if let Some(a) = arguments {
-                    statement = statement.bind(a.as_ref())
-                        .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from_rust(e))))?;
+                    statement = statement.bind(a.as_ref().iter().collect())
+                        .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from(e))))?;
                 }
 
-                statement.raw_js_value().await
-                    .map_err(crate::D1Error::from_rust)?
-                    .pop()
-                    .map(D1Row::from_raw)
-                    .transpose()
+                let raw = JsFuture::from(statement.first(None).map_err(D1Error::from)?)
+                    .await
+                    .map_err(crate::D1Error::from)?;
+                if raw.is_null() {
+                    Ok(None)
+                } else {
+                    D1Row::from_raw(raw).map(Some)
+                }
             }))
         }
 
@@ -325,11 +336,15 @@ const _: () = {
 pub struct D1ConnectOptions {
     pragmas: TogglePragmas,
     #[cfg(target_arch = "wasm32")]
-    d1: std::sync::Arc<worker::D1Database>,
+    d1: worker_sys::D1Database,
     #[cfg(not(target_arch = "wasm32"))]
     sqlite_path: std::path::PathBuf,
 }
 const _: () = {
+    /* SAFETY: used in single-threaded Workers */
+    unsafe impl Send for D1ConnectOptions {}
+    unsafe impl Sync for D1ConnectOptions {}
+
     #[cfg(target_arch = "wasm32")]
     const URL_CONVERSION_UNSUPPORTED_MESSAGE: &'static str = "\
         `sqlx_d1::D1ConnectOptions` doesn't support conversion between `Url`. \
@@ -343,7 +358,10 @@ const _: () = {
     impl D1ConnectOptions {
         #[cfg(target_arch = "wasm32")]
         pub fn new(d1: worker::D1Database) -> Self {
-            Self { d1: std::sync::Arc::new(d1), pragmas: TogglePragmas::new() }
+            Self {
+                d1: unsafe {core::mem::transmute(d1)},
+                pragmas: TogglePragmas::new(),
+            }
         }
     }
 
@@ -447,13 +465,16 @@ const _: () = {
         {
             #[cfg(target_arch = "wasm32")] {
                 Box::pin(worker::send::SendFuture::new(async move {
+                    let d1 = self.d1.clone();
+
                     if let Some(pragmas) = self.pragmas.collect() {
-                        self.d1.exec(&pragmas.join("\n")).await
-                            .map_err(|e| sqlx_core::Error::Database(Box::new(crate::D1Error::from(e))))?;
+                        JsFuture::from(d1.exec(&pragmas.join("\n")).map_err(D1Error::from)?)
+                            .await
+                            .map_err(D1Error::from)?;
                     }
 
                     Ok(D1Connection {
-                        inner: self.d1.clone()
+                        inner: d1
                     })
                 }))
             }

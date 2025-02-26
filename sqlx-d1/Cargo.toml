@@ -25,6 +25,7 @@ uuid = ["sqlx-core/uuid", "dep:uuid"]
 # core dependencies
 sqlx-core    = "0.8"
 worker       = { version = "0.5", features = ["d1"] }
+worker-sys   = { version = "0.5", features = ["d1"] }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 log          = "0.4" # required for `sqlx_core::connection::ConnectOptions`

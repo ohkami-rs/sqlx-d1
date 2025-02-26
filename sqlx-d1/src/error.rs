@@ -1,13 +1,19 @@
 pub struct D1Error(worker::send::SendWrapper<worker::Error>);
 
+impl D1Error {
+    pub(crate) fn from_rust(e: impl std::error::Error) -> Self {
+        Self(worker::send::SendWrapper(worker::Error::RustError(e.to_string())))
+    }
+}
+
 impl From<worker::Error> for D1Error {
     fn from(e: worker::Error) -> Self {
         Self(worker::send::SendWrapper(e))
     }
 }
-impl D1Error {
-    pub(crate) fn from_rust(e: impl std::error::Error) -> Self {
-        Self(worker::send::SendWrapper(worker::Error::RustError(e.to_string())))
+impl From<worker::wasm_bindgen::JsValue> for D1Error {
+    fn from(e: worker::wasm_bindgen::JsValue) -> Self {
+        Self::from(worker::Error::from(e))
     }
 }
 
