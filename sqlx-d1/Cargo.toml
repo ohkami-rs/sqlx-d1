@@ -13,8 +13,8 @@ keywords      = ["cloudflare", "d1", "sqlx", "database", "db"]
 categories    = ["database", "asynchronous", "wasm", "rust-patterns", "network-programming"]
 
 [features]
-# DEBUG
-# default = ["json", "uuid"]
+DEBUG = ["json", "uuid"]
+#default = ["DEBUG"]
 
 json = ["sqlx-core/json", "dep:serde"]
 uuid = ["sqlx-core/uuid", "dep:uuid"]

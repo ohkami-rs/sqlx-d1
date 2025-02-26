@@ -1,7 +1,15 @@
-#[derive(Debug)]
 pub struct D1Column {
     pub(crate) ordinal: usize,
     pub(crate) name: sqlx_core::ext::ustr::UStr,
+}
+
+impl std::fmt::Debug for D1Column {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("D1Column")
+            .field("ordinal", &self.ordinal)
+            .field("name", &(&*self.name))
+            .finish()
+    }
 }
 
 impl sqlx_core::column::Column for D1Column {

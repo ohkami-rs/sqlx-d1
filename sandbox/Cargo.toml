@@ -20,3 +20,6 @@ sqlx-d1 = { path = "../sqlx-d1" }
 git = "https://github.com/ohkami-rs/ohkami"
 branch = "v0.24"
 features = ["rt_worker"]
+
+[features]
+DEBUG = ["sqlx-d1/DEBUG"]

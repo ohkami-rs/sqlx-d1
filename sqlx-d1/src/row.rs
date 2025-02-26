@@ -28,6 +28,10 @@ impl D1Row {
         use worker::wasm_bindgen::JsCast;
         use worker::js_sys::{Object, Array};
 
+        #[cfg(feature = "DEBUG")] {
+            worker::console_debug!("[D1Row::from_raw] raw = `{raw:?}`");
+        }
+
         let entries = Object::entries(raw.unchecked_ref::<Object>());
         let len = entries.length() as usize;
 
@@ -42,6 +46,11 @@ impl D1Row {
             values.push(
                 value.into()
             );
+        }
+
+        #[cfg(feature = "DEBUG")] {
+            worker::console_debug!("[D1Row::from_raw] columns = `{columns:?}`");
+            worker::console_debug!("[D1Row::from_raw] values = `{values:?}`");
         }
 
         Ok(Self { columns, values })

@@ -1,8 +1,16 @@
-#[derive(Debug)]
 pub struct D1Value(worker::send::SendWrapper<
     worker::wasm_bindgen::JsValue
 >);
 const _: () = {
+    impl std::fmt::Debug for D1Value {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("D1Value")
+                .field("typeof", &self.0.0.js_typeof().as_string().unwrap())
+                .field("value", &self.0.0)
+                .finish()
+        }
+    }
+
     impl sqlx_core::value::Value for D1Value {
         type Database = crate::D1;
         
