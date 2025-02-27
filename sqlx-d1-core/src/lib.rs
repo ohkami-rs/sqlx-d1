@@ -44,6 +44,3 @@ impl sqlx_core::database::Database for D1 {
 
     const URL_SCHEMES: &'static [&'static str] = &["d1"];
 }
-
-#[cfg(feature = "macro-support")]
-impl sqlx_macros_core::database::DatabaseExt for D1 {}
