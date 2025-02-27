@@ -1339,12 +1339,19 @@ dependencies = [
 name = "sqlx-d1"
 version = "0.1.0"
 dependencies = [
+ "sqlx-d1-core",
+ "sqlx-d1-macros",
+]
+
+[[package]]
+name = "sqlx-d1-core"
+version = "0.1.0"
+dependencies = [
  "futures-core",
  "futures-util",
  "log",
  "serde",
  "sqlx-core",
- "sqlx-d1-macros",
  "sqlx-sqlite",
  "uuid",
  "worker",
@@ -1360,7 +1367,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx-macros-core",
- "sqlx-sqlite",
  "syn",
 ]
 

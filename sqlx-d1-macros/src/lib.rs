@@ -1,5 +1,4 @@
 use sqlx_macros_core::query::{QueryMacroInput, QueryDriver};
-use sqlx_sqlite::Sqlite;
 use std::sync::{LazyLock, Once};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
@@ -107,10 +106,11 @@ fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
     */
 
     let span = input.span();
+    Ok(input)
 
-    let qinput = syn::parse2::<QueryMacroInput>(input)?;
-    let driver = QueryDriver::new::<Sqlite>();
-
-    sqlx_macros_core::query::expand_input(qinput, &[driver])
-        .map_err(|e| syn::Error::new(span, e.to_string()))
+//    let qinput = syn::parse2::<QueryMacroInput>(input)?;
+//    let driver = QueryDriver::new::<Sqlite>();
+//
+//    sqlx_macros_core::query::expand_input(qinput, &[driver])
+//        .map_err(|e| syn::Error::new(span, e.to_string()))
 }

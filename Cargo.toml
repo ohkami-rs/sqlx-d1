@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members  = ["sqlx-d1", "sqlx-d1-macros"]
+members  = ["sqlx-d1", "sqlx-d1-core", "sqlx-d1-macros"]
 exclude  = ["sandbox"]
 
 [workspace.package]

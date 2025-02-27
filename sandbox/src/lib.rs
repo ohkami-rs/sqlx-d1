@@ -42,7 +42,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
 
-    let _ = sqlx_d1::query!("");
+    // let _ = sqlx_d1::query!("");
 
     Ohkami::new((
         Context::new(D1Connection::new(DB)),
