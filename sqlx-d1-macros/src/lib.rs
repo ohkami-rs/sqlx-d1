@@ -1,9 +1,52 @@
-use sqlx_macros_core::query::{QueryMacroInput, QueryDriver};
+mod input;
+
 use std::sync::{LazyLock, Once};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
 use syn::spanned::Spanned;
 use quote::quote;
+
+struct Location {
+    manifest_dir: PathBuf,
+    workspace_root: LazyLock<PathBuf>,
+}
+/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/mod.rs#L80-L114>
+static LOCATION: LazyLock<Location> = LazyLock::new(|| {
+    fn get_manifest_dir() -> PathBuf {
+        std::env::var("CARGO_MANIFEST_DIR")
+            .expect("`CARGO_MANIFEST_DIR` must be set")
+            .into()
+    }
+
+    fn get_workspace_root() -> PathBuf {
+        use serde::Deserialize;
+        use std::process::Command;
+        
+        let cargo = std::env::var("CARGO").expect("`CARGO` must be set");
+        
+        let output = Command::new(&cargo)
+            .args(&["metadata", "--format-version=1", "--no-deps"])
+            .current_dir(&get_manifest_dir())
+            .env_remove("__CARGO_FIX_PLZ")
+            .output()
+            .expect("Could not fetch metadata");
+        
+        #[derive(Deserialize)]
+        struct CargoMetadata {
+            workspace_root: PathBuf,
+        }
+        
+        let cargo_metadata: CargoMetadata =
+            serde_json::from_slice(&output.stdout).expect("Invalid `cargo metadata` output");
+        
+        cargo_metadata.workspace_root
+    }
+
+    Location {
+        manifest_dir: get_manifest_dir(),
+        workspace_root: LazyLock::new(get_workspace_root)
+    }
+});
 
 /// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros/src/lib.rs#L9-L23>
 #[proc_macro]
@@ -13,57 +56,24 @@ pub fn expand_query(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         .into()
 }
 
-/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/mod.rs#L80-L106>
-fn workspace_root_of_a_package_root(manifest_dir: impl AsRef<Path>) -> PathBuf {
-    use serde::Deserialize;
-    use std::process::Command;
-
-    let cargo = std::env::var("CARGO").expect("`CARGO` must be set");
-
-    let output = Command::new(&cargo)
-        .args(&["metadata", "--format-version=1", "--no-deps"])
-        .current_dir(manifest_dir.as_ref())
-        .env_remove("__CARGO_FIX_PLZ")
-        .output()
-        .expect("Could not fetch metadata");
-
-    #[derive(Deserialize)]
-    struct CargoMetadata {
-        workspace_root: PathBuf,
-    }
-
-    let metadata: CargoMetadata =
-        serde_json::from_slice(&output.stdout).expect("Invalid `cargo metadata` output");
-
-    metadata.workspace_root
-}
-
-fn miniflare_d1_dir_in_a_package_root(package_root: impl AsRef<Path>) -> PathBuf {
-    package_root.as_ref()
-        .join(".wrangler")
-        .join("state")
-        .join("v3")
-        .join("d1")
-        .join("miniflare-D1DatabaseObject")
-}
-
 fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let sqlite_file_path = {
-        let manifest_dir: PathBuf = std::env::var("CARGO_MANIFEST_DIR")
-            .expect("`CARGO_MANIFEST_DIR` must be set")
-            .into();
+        fn miniflare_d1_dir_in_a_package_root(package_root: impl AsRef<Path>) -> PathBuf {
+            package_root.as_ref()
+                .join(".wrangler")
+                .join("state")
+                .join("v3")
+                .join("d1")
+                .join("miniflare-D1DatabaseObject")
+        }
         
-        let workspace_root = LazyLock::new(|| {
-            workspace_root_of_a_package_root(&manifest_dir)
-        });
-    
         let miniflare_d1_dir = {
             ({
-                let candidate = miniflare_d1_dir_in_a_package_root(&*manifest_dir);
+                let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.manifest_dir);
                 std::fs::exists(&candidate).is_ok_and(|e|e).then_some(candidate)
             })
             .or_else(|| {
-                let candidate = miniflare_d1_dir_in_a_package_root(&*workspace_root);
+                let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.workspace_root);
                 std::fs::exists(&candidate).is_ok_and(|e|e).then_some(candidate)
             })
             .ok_or_else(|| syn::Error::new(Span::call_site(),
