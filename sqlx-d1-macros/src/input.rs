@@ -3,7 +3,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Ident, Span};
-use quote::{quote, format_ident};
+use quote::{quote, quote_spanned, format_ident};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{Expr, LitBool, LitStr, Token};
@@ -117,11 +117,9 @@ impl QueryMacroInput {
         &self,
         describe: &sqlx_core::describe::Describe<sqlx_d1::D1>,
     ) -> syn::Result<TokenStream> {
-        use sqlx_core::Either;
-
         if self.arg_exprs.is_empty() {
             return Ok(quote! {
-                let query_args = <::sqlx_d1::D1 as ::sqlx::database::Database>::Arguments::<'_>::default();
+                let query_args = <::sqlx_d1::D1 as ::sqlx_d1::sqlx_core::database::Database>::Arguments::<'_>::default();
             });
         }
 
@@ -137,24 +135,57 @@ impl QueryMacroInput {
             #(let #arg_idents = &(#arg_exprs);)*
         };
 
-        let arg_checks = match describe.parameters() {
+        let args_check = match describe.parameters() {
             | None
-            | Some(Either::Right(_))
-            | Some(Either::Left(_)) if !self.checked
-            => TokenStream::new(),
+            | Some(sqlx_core::Either::Right(_))
+            | Some(sqlx_core::Either::Left(_)) if !self.checked => TokenStream::new(),
 
-            Some(Either::Left(params)) => params
+            Some(sqlx_core::Either::Left(params)) => params
                 .iter()
                 .zip(arg_idents.iter().zip(&self.arg_exprs))
                 .enumerate()
-                .map(|(i, (param_ty, (param_name, param_expr)))| {
+                .map(|(i, (param_type_info, (param_name, param_expr)))| {
                     if get_type_override(param_expr).is_some() {
                         return Ok(TokenStream::new());
                     }
 
-                    let param_ty = ;
+                    let param_type_name = param_type_name_for_info(&param_type_info)
+                        .ok_or_else(|| syn::Error::new(
+                            param_expr.span(),
+                            format!("unsupported type {param_type_info} for param #{}", i + 1)
+                        ))?
+                        .parse::<TokenStream>()
+                        .map_err(|_| syn::Error::new(
+                            param_expr.span(),
+                            format!("Rust yupe mapping for {param_tye_info} not parsable")
+                        ))?;
+
+                    syn::Result::Ok(quote_spanned!(param_expr.span() => {
+                        if false {
+                            use ::sqlx_d1::sqlx_core::ty_match::{self, WrapSame, WrapSameExt, MatchBorrow, MatchBorrowExt};
+
+                            let expr = ty_match::dupe_value(#param_name);
+                            let ty_check = WrapSame::<#param_tye_info, _>::new(&expr).wrap_same();
+                            let (mut _ty_check, match_borrow) = MatchBorrow::new(ty_check, &expr);
+                            _ty_check = match_borrow.match_borrow();
+
+                            ::std::panic!()
+                        }
+                    }))
                 })
+                .collect::<syn::Result<TokenStream>>()?
         };
+
+        let args_count = self.arg_exprs.len();
+
+        Ok(quote! {
+            #arg_bindings
+
+            #args_check
+
+            let mut query_args = <::sqlx_d1::D1 as ::sqlx_d1::sqlx_core::database::Database>::Arguments::<'_>::default();
+            query_args.reserve(#args_count, 0 #(+ ::sqlx_d1::sqlx_core::encode::Encode::<::sqlx_d1::D1>::size_hint(#arg_idents))*);
+        })
     }
 }
 
@@ -250,5 +281,59 @@ fn get_type_override(expr: &Expr) -> Option<&Type> {
         Expr::Group(group) => get_type_override(&group.expr),
         Expr::Cast(cast) => Some(&cast.ty),
         _ => None,
+    }
+}
+
+/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/database/mod.rs>
+fn param_type_name_for_info(
+    info: &<sqlx_d1_core::D1 as sqlx_core::database::Database>::TypeInfo,
+) -> Option<&'static str> {
+    use sqlx_core::{types::Type, database::Database};
+    use sqlx_d1_core::{D1, type_info::TypeInfo};
+
+    macro_rules! input_ty {
+        ($ty:ty, $input:ty) => {
+            stringify!($input)
+        };
+        ($ty:ty) => {
+            stringify!($ty)
+        };
+    }
+
+    macro_rules! search {
+        ( $( $(#[$meta:meta])? $T:ty $(| $input:ty)? ),* $(,)? ) => {
+            {
+                $(
+                    $(#[$meta])?
+                    if
+                        <$T as Type<D1>>::type_info() == *info ||
+                        <$T as Type<D1>>::compatible(info)
+                    {
+                        return Some(input_ty!($T $(, $input)?));
+                    }
+                )*
+
+                None
+            }
+        };
+    }
+
+    search! {
+        bool,
+        i8,
+        i16,
+        i32,
+        i64,
+        isize,
+        u8,
+        u16,
+        u32,
+        u64,
+        usize,
+        String | &str,
+        Vec<u8> | &[u8],
+
+        #[cfg(feature = "uuid")]
+        sqlx_core::types::Uuid,
     }
 }

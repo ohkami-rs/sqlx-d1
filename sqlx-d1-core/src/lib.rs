@@ -50,12 +50,15 @@ pub mod query {
     use sqlx_core::from_row::FromRow;
 
     pub use sqlx_core::query::Query;
-    pub async fn query(sql: &str) -> Query<'_, D1, D1Arguments> {
+    pub fn query(sql: &str) -> Query<'_, D1, D1Arguments> {
         sqlx_core::query::query(sql)
+    }
+    pub fn query_with(sql: &str, args: D1Arguments) -> Query<'_, D1, D1Arguments> {
+        sqlx_core::query::query_with(sql, args)
     }
 
     pub use sqlx_core::query_as::QueryAs;
-    pub async fn query_as<O>(sql: &str) -> QueryAs<'_, D1, O, D1Arguments>
+    pub fn query_as<O>(sql: &str) -> QueryAs<'_, D1, O, D1Arguments>
     where
         O: for<'r> FromRow<'r, D1Row>,
     {
@@ -63,7 +66,7 @@ pub mod query {
     }
 
     pub use sqlx_core::query_scalar::QueryScalar;
-    pub async fn query_scalar<S>(sql: &str) -> QueryScalar<'_, D1, S, D1Arguments>
+    pub fn query_scalar<S>(sql: &str) -> QueryScalar<'_, D1, S, D1Arguments>
     where
         (S,): for<'r> FromRow<'r, D1Row>,
     {
@@ -71,3 +74,6 @@ pub mod query {
     }
 }
 pub use query::{query, query_as, query_scalar};
+
+#[doc(hidden)]
+pub use sqlx_core;

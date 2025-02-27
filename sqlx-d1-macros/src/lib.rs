@@ -4,8 +4,8 @@ use std::io;
 use std::sync::{LazyLock, OnceLock, Once};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
-use syn::spanned::Spanned;
-use quote::quote;
+use syn::{LitStr, spanned::Spanned};
+use quote::{quote, format_ident};
 
 struct Location {
     manifest_dir: PathBuf,
@@ -160,6 +160,23 @@ fn compare_expand(
                 "expected {n_correct_params} parameters, got {n_input_params}"
             )))?;
     }
+
+    let args_tokens = input.quote_args_with(&describe);
+
+    let query_args_ident = format_ident!("query_args");
+
+    let output = if describe.columns().iter().all(|c| c.type_info().is_void()) {
+        let sql = LitStr::new(&input.sql, input.source_span);
+        quote! {
+            ::sqlx_d1::query_with(#sql, #query_args_ident)
+        }
+    } else {
+        match input.record_type {
+            input::RecordType::Generated => {
+                let columns = ;
+            }
+        }
+    };
 
     Ok(quote! {""})
 }
