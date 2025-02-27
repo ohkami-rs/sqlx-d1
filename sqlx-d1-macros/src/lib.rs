@@ -3,6 +3,7 @@ use std::sync::{LazyLock, Once};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
 use syn::spanned::Spanned;
+use quote::quote;
 
 /// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros/src/lib.rs#L9-L23>
 #[proc_macro]
@@ -106,7 +107,7 @@ fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
     */
 
     let span = input.span();
-    Ok(input)
+    Ok(quote! {""})
 
 //    let qinput = syn::parse2::<QueryMacroInput>(input)?;
 //    let driver = QueryDriver::new::<Sqlite>();

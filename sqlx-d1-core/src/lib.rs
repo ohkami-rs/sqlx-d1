@@ -70,3 +70,4 @@ pub mod query {
         sqlx_core::query_scalar::query_scalar(sql)
     }
 }
+pub use query::{query, query_as, query_scalar};
