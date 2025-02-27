@@ -22,7 +22,7 @@ features      = ["macro-support", "json", "uuid"]
 json = ["sqlx-core/json", "dep:serde"]
 uuid = ["sqlx-core/uuid", "dep:uuid"]
 
-macro-support = ["sqlx-core/offline", "dep:serde", "serde/derive"]
+macro-support = ["sqlx-core/offline", "dep:sqlx-macros-core", "dep:serde", "serde/derive"]
 
 DEBUG = []
 
@@ -37,8 +37,9 @@ futures-util = { version = "0.3", default-features = false }
 log          = "0.4" # required for `sqlx_core::connection::ConnectOptions`
 
 # optional dependencies
-serde  = { optional = true, version = "1.0" }
-uuid   = { optional = true, version = "1.14" }
+serde            = { optional = true, version = "1.0" }
+uuid             = { optional = true, version = "1.14" }
+sqlx-macros-core = { optional = true, version = "=0.8.3", features = ["macros"] }
 
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
