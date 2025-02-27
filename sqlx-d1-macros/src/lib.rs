@@ -98,7 +98,7 @@ fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
     static SET_DATABASE_URL: Once = Once::new();
     SET_DATABASE_URL.call_once(|| unsafe {
         /* SAFETY: call in `Once::call_once` */
-        std::env::set_var("DATABASE_URL", sqlite_file_path);
+        std::env::set_var("DATABASE_URL", format!("sqlite://{}", sqlite_file_path.display()));
     });
 
     /*
