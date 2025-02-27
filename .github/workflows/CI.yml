@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, v*]
+
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        toolchain: ['stable', 'nightly']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup mold
+        run:  |
+          sudo apt install mold clang
+          echo '[target.x86_64-unknown-linux-gnu]'                     >> $HOME/.cargo/config.toml
+          echo 'linker    = "clang"'                                   >> $HOME/.cargo/config.toml
+          echo 'rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]' >> $HOME/.cargo/config.toml
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          targets:   x86_64-unknown-linux-gnu, wasm32-unknown-unknown
+
+      - name: Check buildability
+        run:  |
+          cargo build -p sqlx-d1
+          cargo build -p sqlx-d1 --features json
+          cargo build -p sqlx-d1 --features uuid
+          cargo build -p sqlx-d1 --features macros
+          cargo build -p sqlx-d1 --features json,uuid,macros
+
+      - name: Check sandbox
+        run:  |
+          echo 'Please wait for offline mode...'
