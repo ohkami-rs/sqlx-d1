@@ -5,7 +5,7 @@ use std::io;
 use std::sync::{LazyLock, OnceLock, Once};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
-use syn::{LitStr, spanned::Spanned};
+use syn::LitStr;
 use quote::{quote, format_ident};
 
 struct Location {
@@ -162,36 +162,40 @@ fn compare_expand(
             )))?;
     }
 
-    let args_tokens = input.quote_args_with(&describe);
+    let args_tokens = input.quote_args_with(&describe)?;
 
     let query_args_ident = format_ident!("query_args");
 
-    let output = if describe.columns().iter().all(|c| c.type_info().is_void()) {
-        let sql = LitStr::new(&input.sql, input.source_span);
+    let output = if describe.columns().iter().all({
+        use sqlx_core::{column::Column as _, type_info::TypeInfo as _};
+        |c| c.type_info().is_void()
+    }) {
+        let sql = LitStr::new(&input.sql, input.src_span);
         quote! {
             ::sqlx_d1::query_with(#sql, #query_args_ident)
         }
     } else {
-        match input.record_type {
+        match &input.record_type {
             input::RecordType::Scalar => {
                 output::quote_query_scalar(
                     &input,
                     &query_args_ident,
                     &describe,
-                )
+                )?
             }
-            input::RecordType::Given => {
+            input::RecordType::Given(out_ty) => {
                 let columns = output::columns_to_rust(&describe)?;
                 output::quote_query_as(
                     &input,
+                    out_ty,
                     &query_args_ident,
                     &columns
                 )
             }
             input::RecordType::Generated => {
-                let columns = columns = self::output::columns_to_rust(&describe)?;
+                let columns = self::output::columns_to_rust(&describe)?;
 
-                let record_type_name_token = syn::parse_str::<Type>("Record").unwrap();
+                let record_type_name_token = syn::parse_str::<syn::Type>("Record").unwrap();
 
                 for rust_column in &columns {
                     if rust_column.type_.is_wildcard() {
@@ -228,8 +232,6 @@ fn compare_expand(
         }
     };
 
-
-
     Ok(quote! {
         {
             #[allow(clippy::all)]
@@ -246,8 +248,8 @@ fn compare_expand(
 
 /// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/database/mod.rs>
 
-use sqlx_core::types::Type;
-use sqlx_d1_core::{D1, type_info::TypeInfo};
+use sqlx_core::{types::Type, database::Database};
+use sqlx_d1_core::D1;
 
 macro_rules! input_ty {
     ($ty:ty, $input:ty) => {
@@ -261,7 +263,7 @@ macro_rules! input_ty {
 macro_rules! type_names {
     ( $( $(#[$meta:meta])? $T:ty $(| $input:ty)? ),* $(,)? ) => {
         fn param_type_name_for_info(
-            info: &<D1 as sqlx_core::database::Database>::TypeInfo,
+            info: &<D1 as Database>::TypeInfo,
         ) -> Option<&'static str> {
             $(
                 $(#[$meta])?
@@ -276,7 +278,7 @@ macro_rules! type_names {
         }
 
         fn return_type_name_for_info(
-            info: &<D1 as sqlx_core::database::Database>::TypeInfo,
+            info: &<D1 as Database>::TypeInfo,
         ) -> Option<&'static str> {
             $(
                 $(#[$meta])?

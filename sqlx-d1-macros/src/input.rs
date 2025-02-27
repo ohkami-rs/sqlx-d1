@@ -6,8 +6,8 @@ use proc_macro2::{TokenStream, Ident, Span};
 use quote::{quote, quote_spanned, format_ident};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
-use syn::{Expr, LitBool, LitStr, Token};
-use syn::{ExprArray, Type};
+use syn::spanned::Spanned;
+use syn::{Expr, LitBool, LitStr, Token, ExprArray, Type};
 
 /// Macro input shared by `query!()` and `query_file!()`
 pub struct QueryMacroInput {
@@ -115,7 +115,7 @@ impl QueryMacroInput {
     /// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/args.rs>
     pub(super) fn quote_args_with(
         &self,
-        describe: &sqlx_core::describe::Describe<sqlx_d1::D1>,
+        describe: &sqlx_core::describe::Describe<sqlx_d1_core::D1>,
     ) -> syn::Result<TokenStream> {
         if self.arg_exprs.is_empty() {
             return Ok(quote! {
@@ -136,9 +136,9 @@ impl QueryMacroInput {
         };
 
         let args_check = match describe.parameters() {
-            | None
-            | Some(sqlx_core::Either::Right(_))
-            | Some(sqlx_core::Either::Left(_)) if !self.checked => TokenStream::new(),
+            None | Some(sqlx_core::Either::Right(_)) => TokenStream::new(),
+            
+            Some(sqlx_core::Either::Left(_)) if !self.checked => TokenStream::new(),
 
             Some(sqlx_core::Either::Left(params)) => params
                 .iter()
@@ -157,7 +157,7 @@ impl QueryMacroInput {
                         .parse::<TokenStream>()
                         .map_err(|_| syn::Error::new(
                             param_expr.span(),
-                            format!("Rust yupe mapping for {param_tye_info} not parsable")
+                            format!("Rust yupe mapping for {param_type_info} not parsable")
                         ))?;
 
                     syn::Result::Ok(quote_spanned!(param_expr.span() => {
@@ -165,7 +165,7 @@ impl QueryMacroInput {
                             use ::sqlx_d1::sqlx_core::ty_match::{self, WrapSame, WrapSameExt, MatchBorrow, MatchBorrowExt};
 
                             let expr = ty_match::dupe_value(#param_name);
-                            let ty_check = WrapSame::<#param_tye_info, _>::new(&expr).wrap_same();
+                            let ty_check = WrapSame::<#param_type_name, _>::new(&expr).wrap_same();
                             let (mut _ty_check, match_borrow) = MatchBorrow::new(ty_check, &expr);
                             _ty_check = match_borrow.match_borrow();
 
@@ -263,6 +263,8 @@ fn resolve_path(path: impl AsRef<Path>, err_span: Span) -> syn::Result<PathBuf> 
 }
 
 fn strip_wildcard(expr: Expr) -> Expr {
+    use syn::{ExprCast, ExprGroup};
+
     match expr {
         Expr::Group(ExprGroup { attrs, group_token, expr }) =>
             Expr::Group(ExprGroup { attrs, group_token, expr: Box::new(strip_wildcard(*expr)) }),

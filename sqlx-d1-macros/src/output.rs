@@ -79,18 +79,21 @@ impl Display for DisplayColumn<'_> {
     }
 }
 
-pub fn columns_to_rust(describe: &Describe<DB>) -> syn::Result<Vec<RustColumn>> {
+pub fn columns_to_rust(describe: &Describe<D1>) -> syn::Result<Vec<RustColumn>> {
     (0..describe.columns().len())
         .map(|i| column_to_rust(describe, i))
         .collect::<syn::Result<Vec<_>>>()
 }
 
-fn column_to_rust(describe: &Describe<DB>, i: usize) -> syn::Result<RustColumn> {
+fn column_to_rust(describe: &Describe<D1>, i: usize) -> syn::Result<RustColumn> {
     let column = &describe.columns()[i];
 
     // add raw prefix to all identifiers
     let decl = ColumnDecl::parse(&column.name())
-        .map_err(|e| format!("column name {:?} is invalid: {}", column.name(), e))?;
+        .map_err(|e| syn::Error::new(
+            Span::call_site(),
+            format!("column name {:?} is invalid: {e}", column.name()
+        )))?;
 
     let ColumnOverride { nullability, type_ } = decl.r#override;
 
@@ -164,11 +167,8 @@ pub fn quote_query_as(
     let ident = columns.iter().map(|col| &col.ident);
     let var_name = columns.iter().map(|col| &col.var_name);
 
-    let db_path = DB::db_path();
-    let row_path = DB::row_path();
-
     // if this query came from a file, use `include_str!()` to tell the compiler where it came from
-    let sql = if let Some(ref path) = &input.file_path {
+    let sql = if let Some(path) = &input.file_path {
         quote::quote_spanned! { input.src_span => include_str!(#path) }
     } else {
         let sql = &input.sql;
@@ -176,8 +176,8 @@ pub fn quote_query_as(
     };
 
     quote! {
-        ::sqlx::query_with::<#db_path, _>(#sql, #bind_args).try_map(|row: #row_path| {
-            use ::sqlx::Row as _;
+        ::sqlx_d1::query_with::<_>(#sql, #bind_args).try_map(|row: <::sqlx_d1::D1 as ::sqlx_d1::sqlx_core::database::Database>::Row| {
+            use ::sqlx_d1::sqlx_core::Row as _;
 
             #(#instantiations)*
 
@@ -189,7 +189,7 @@ pub fn quote_query_as(
 pub fn quote_query_scalar(
     input: &QueryMacroInput,
     bind_args: &Ident,
-    describe: &Describe<DB>,
+    describe: &Describe<D1>,
 ) -> syn::Result<TokenStream> {
     let columns = describe.columns();
 
@@ -197,8 +197,7 @@ pub fn quote_query_scalar(
         return Err(syn::Error::new(
             input.src_span,
             format!("expected exactly 1 column, got {}", columns.len()),
-        )
-        .into());
+        ));
     }
 
     // attempt to parse a column override, otherwise fall back to the inferred type of the column
@@ -215,18 +214,17 @@ pub fn quote_query_scalar(
         quote! { _ }
     };
 
-    let db = DB::db_path();
-    let query = &input.sql;
+    let sql = &input.sql;
 
     Ok(quote! {
-        ::sqlx::query_scalar_with::<#db, #ty, _>(#query, #bind_args)
+        ::sqlx_d1::query_scalar_with::<#ty, _>(#sql, #bind_args)
     })
 }
 
 fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
     let type_info = &*column.type_info();
 
-    crate::return_type_for_id(&type_info)
+    crate::return_type_name_for_info(&type_info)
         .map(|t| t.parse().unwrap())
         .or_else(|| syn::Error::new(Span::call_site(), format!(
             "unsupported type {type_info} of {}",
@@ -310,5 +308,8 @@ fn parse_ident(name: &str) -> syn::Result<Ident> {
         }
     }
 
-    Err(format!("{name:?} is not a valid Rust identifier").into())
+    Err(syn::Error::new(
+        Span::call_site(),
+        format!("{name:?} is not a valid Rust identifier")
+    ))
 }
