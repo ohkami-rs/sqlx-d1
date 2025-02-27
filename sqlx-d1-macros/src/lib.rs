@@ -137,7 +137,29 @@ fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
         }).map_err(|e| syn::Error::new(input.src_span, e))?
     };
 
-    
+    compare_expand(input, describe)
+}
+
+/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/mod.rs#L241-379>
+fn compare_expand(
+    input: self::input::QueryMacroInput,
+    describe: sqlx_core::describe::Describe<sqlx_d1_core::D1>,
+) -> Result<TokenStream, syn::Error> {
+    if let Some(actual_params) = describe.parameters() {
+        use sqlx_core::Either;
+
+        let n_input_params = input.arg_exprs.len();
+        let n_correct_params = match actual_params {
+            Either::Left(params) => params.len(),
+            Either::Right(n) => n,
+        };
+
+        let _: () = (n_input_params == n_correct_params)
+            .then_some(())
+            .ok_or_else(|| syn::Error::new(Span::call_site(), format!(
+                "expected {n_correct_params} parameters, got {n_input_params}"
+            )))?;
+    }
 
     Ok(quote! {""})
 }

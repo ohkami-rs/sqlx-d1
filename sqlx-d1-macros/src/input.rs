@@ -2,7 +2,8 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use proc_macro2::{Ident, Span};
+use proc_macro2::{TokenStream, Ident, Span};
+use quote::{quote, format_ident};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::{Expr, LitBool, LitStr, Token};
@@ -110,6 +111,53 @@ impl Parse for QueryMacroInput {
     }
 }
 
+impl QueryMacroInput {
+    /// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/args.rs>
+    pub(super) fn quote_args_with(
+        &self,
+        describe: &sqlx_core::describe::Describe<sqlx_d1::D1>,
+    ) -> syn::Result<TokenStream> {
+        use sqlx_core::Either;
+
+        if self.arg_exprs.is_empty() {
+            return Ok(quote! {
+                let query_args = <::sqlx_d1::D1 as ::sqlx::database::Database>::Arguments::<'_>::default();
+            });
+        }
+
+        let arg_idents = (0..self.arg_exprs.len())
+            .map(|i| format_ident!("arg{i}"))
+            .collect::<Vec<_>>();
+        let arg_exprs = self.arg_exprs
+            .iter()
+            .cloned()
+            .map(strip_wildcard);
+
+        let arg_bindings = quote! {
+            #(let #arg_idents = &(#arg_exprs);)*
+        };
+
+        let arg_checks = match describe.parameters() {
+            | None
+            | Some(Either::Right(_))
+            | Some(Either::Left(_)) if !self.checked
+            => TokenStream::new(),
+
+            Some(Either::Left(params)) => params
+                .iter()
+                .zip(arg_idents.iter().zip(&self.arg_exprs))
+                .enumerate()
+                .map(|(i, (param_ty, (param_name, param_expr)))| {
+                    if get_type_override(param_expr).is_some() {
+                        return Ok(TokenStream::new());
+                    }
+
+                    let param_ty = ;
+                })
+        };
+    }
+}
+
 impl QuerySrc {
     /// If the query source is a file, read it to a string. Otherwise return the query string.
     fn resolve(self, source_span: Span) -> syn::Result<String> {
@@ -183,3 +231,24 @@ fn resolve_path(path: impl AsRef<Path>, err_span: Span) -> syn::Result<PathBuf> 
     Ok(crate::LOCATION.manifest_dir.join(path))
 }
 
+fn strip_wildcard(expr: Expr) -> Expr {
+    match expr {
+        Expr::Group(ExprGroup { attrs, group_token, expr }) =>
+            Expr::Group(ExprGroup { attrs, group_token, expr: Box::new(strip_wildcard(*expr)) }),
+        // we want to retain casts if they semantically matter
+        Expr::Cast(ExprCast { attrs, expr, as_token, ty }) => match *ty {
+            // cast to wildcard `_` will produce weird errors; we interpret it as taking the value as-is
+            Type::Infer(_) => *expr,
+            _ => Expr::Cast(ExprCast { attrs, expr, as_token, ty }),
+        },
+        _ => expr,
+    }
+}
+
+fn get_type_override(expr: &Expr) -> Option<&Type> {
+    match expr {
+        Expr::Group(group) => get_type_override(&group.expr),
+        Expr::Cast(cast) => Some(&cast.ty),
+        _ => None,
+    }
+}
