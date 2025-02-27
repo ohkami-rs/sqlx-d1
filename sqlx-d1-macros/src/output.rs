@@ -226,7 +226,7 @@ fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
 
     crate::return_type_name_for_info(&type_info)
         .map(|t| t.parse().unwrap())
-        .or_else(|| syn::Error::new(Span::call_site(), format!(
+        .unwrap_or_else(|| syn::Error::new(Span::call_site(), format!(
             "unsupported type {type_info} of {}",
             DisplayColumn { idx: i, name: &*column.name() }
         )).to_compile_error())

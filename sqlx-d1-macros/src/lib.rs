@@ -236,7 +236,7 @@ fn compare_expand(
         {
             #[allow(clippy::all)]
             {
-                use ::sqlx_d1::sqlx_core::Arguments as _;
+                use ::sqlx_d1::sqlx_core::arguments::Arguments as _;
 
                 #args_tokens
 
