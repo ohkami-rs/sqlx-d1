@@ -1,4 +1,5 @@
 mod input;
+mod output;
 
 use std::io;
 use std::sync::{LazyLock, OnceLock, Once};
@@ -172,11 +173,142 @@ fn compare_expand(
         }
     } else {
         match input.record_type {
+            input::RecordType::Scalar => {
+                output::quote_query_scalar(
+                    &input,
+                    &query_args_ident,
+                    &describe,
+                )
+            }
+            input::RecordType::Given => {
+                let columns = output::columns_to_rust(&describe)?;
+                output::quote_query_as(
+                    &input,
+                    &query_args_ident,
+                    &columns
+                )
+            }
             input::RecordType::Generated => {
-                let columns = ;
+                let columns = columns = self::output::columns_to_rust(&describe)?;
+
+                let record_type_name_token = syn::parse_str::<Type>("Record").unwrap();
+
+                for rust_column in &columns {
+                    if rust_column.type_.is_wildcard() {
+                        return Err(syn::Error::new(
+                            rust_column.ident.span(),
+                            "wildcard overrides are only allowed with an explicit record type, \
+                            e.g. `query_as!()` and its variants"
+                        ))
+                    }
+                }
+
+                let record_fields = columns.iter().map(|rc| {
+                    let (ident, type_) = (&rc.ident, &rc.type_);
+                    quote! {
+                        #ident: #type_,
+                    }
+                });
+
+                let mut record_tokens = quote! {
+                    #[derive(Debug)]
+                    struct #record_type_name_token {
+                        #(#record_fields)*
+                    }
+                };
+                record_tokens.extend(output::quote_query_as(
+                    &input,
+                    &record_type_name_token,
+                    &query_args_ident,
+                    &columns,
+                ));
+
+                record_tokens
             }
         }
     };
 
-    Ok(quote! {""})
+
+
+    Ok(quote! {
+        {
+            #[allow(clippy::all)]
+            {
+                use ::sqlx_d1::sqlx_core::Arguments as _;
+
+                #args_tokens
+
+                #output
+            }
+        }
+    })
 }
+
+/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/database/mod.rs>
+
+use sqlx_core::types::Type;
+use sqlx_d1_core::{D1, type_info::TypeInfo};
+
+macro_rules! input_ty {
+    ($ty:ty, $input:ty) => {
+        stringify!($input)
+    };
+    ($ty:ty) => {
+        stringify!($ty)
+    };
+}
+
+macro_rules! type_names {
+    ( $( $(#[$meta:meta])? $T:ty $(| $input:ty)? ),* $(,)? ) => {
+        fn param_type_name_for_info(
+            info: &<D1 as sqlx_core::database::Database>::TypeInfo,
+        ) -> Option<&'static str> {
+            $(
+                $(#[$meta])?
+                if
+                    <$T as Type<D1>>::type_info() == *info ||
+                    <$T as Type<D1>>::compatible(info)
+                {
+                    return Some(input_ty!($T $(, $input)?));
+                }
+            )*
+            None
+        }
+
+        fn return_type_name_for_info(
+            info: &<D1 as sqlx_core::database::Database>::TypeInfo,
+        ) -> Option<&'static str> {
+            $(
+                $(#[$meta])?
+                if
+                    <$T as Type<D1>>::type_info() == *info ||
+                    <$T as Type<D1>>::compatible(info)
+                {
+                    return Some(stringify!($T));
+                }
+            )*
+            None
+        }
+    };
+}
+
+type_names! {
+    bool,
+    i8,
+    i16,
+    i32,
+    i64,
+    isize,
+    u8,
+    u16,
+    u32,
+    u64,
+    usize,
+    String | &str,
+    Vec<u8> | &[u8],
+
+    #[cfg(feature = "uuid")]
+    sqlx_core::types::Uuid,
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

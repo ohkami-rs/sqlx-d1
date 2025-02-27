@@ -149,7 +149,7 @@ impl QueryMacroInput {
                         return Ok(TokenStream::new());
                     }
 
-                    let param_type_name = param_type_name_for_info(&param_type_info)
+                    let param_type_name = crate::param_type_name_for_info(&param_type_info)
                         .ok_or_else(|| syn::Error::new(
                             param_expr.span(),
                             format!("unsupported type {param_type_info} for param #{}", i + 1)
@@ -281,59 +281,5 @@ fn get_type_override(expr: &Expr) -> Option<&Type> {
         Expr::Group(group) => get_type_override(&group.expr),
         Expr::Cast(cast) => Some(&cast.ty),
         _ => None,
-    }
-}
-
-/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/database/mod.rs>
-fn param_type_name_for_info(
-    info: &<sqlx_d1_core::D1 as sqlx_core::database::Database>::TypeInfo,
-) -> Option<&'static str> {
-    use sqlx_core::{types::Type, database::Database};
-    use sqlx_d1_core::{D1, type_info::TypeInfo};
-
-    macro_rules! input_ty {
-        ($ty:ty, $input:ty) => {
-            stringify!($input)
-        };
-        ($ty:ty) => {
-            stringify!($ty)
-        };
-    }
-
-    macro_rules! search {
-        ( $( $(#[$meta:meta])? $T:ty $(| $input:ty)? ),* $(,)? ) => {
-            {
-                $(
-                    $(#[$meta])?
-                    if
-                        <$T as Type<D1>>::type_info() == *info ||
-                        <$T as Type<D1>>::compatible(info)
-                    {
-                        return Some(input_ty!($T $(, $input)?));
-                    }
-                )*
-
-                None
-            }
-        };
-    }
-
-    search! {
-        bool,
-        i8,
-        i16,
-        i32,
-        i64,
-        isize,
-        u8,
-        u16,
-        u32,
-        u64,
-        usize,
-        String | &str,
-        Vec<u8> | &[u8],
-
-        #[cfg(feature = "uuid")]
-        sqlx_core::types::Uuid,
     }
 }
