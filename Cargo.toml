@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members  = ["sqlx-d1", "sqlx-d1-core", "sqlx-d1-macros"]
+exclude  = ["sandbox"]
+
+[workspace.package]
+version    = "0.1.0"
+edition    = "2024"
+authors    = ["kanarus <kanarus786@gmail.com>"]
+homepage   = "https://crates.io/crates/sqlx-d1"
+repository = "https://github.com/ohkami-rs/sqlx-d1"
+readme     = "README.md"
+keywords   = ["cloudflare", "d1", "sqlx", "database", "db"]
+categories = ["database", "asynchronous", "wasm", "rust-patterns", "network-programming"]
+license    = "MIT"

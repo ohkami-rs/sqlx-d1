@@ -1,0 +1,45 @@
+[package]
+name          = "sqlx-d1-core"
+documentation = "https://docs.rs/sqlx-d1-core"
+description   = "core implementation for sqlx-d1 - SQLx for Cloudflare D1"
+version       = { workspace = true }
+edition       = { workspace = true }
+authors       = { workspace = true }
+homepage      = { workspace = true }
+repository    = { workspace = true }
+readme        = { workspace = true }
+keywords      = { workspace = true }
+categories    = { workspace = true }
+license       = { workspace = true }
+
+[package.metadata.docs.rs]
+features      = ["macro-support", "json", "uuid"]
+
+
+[features]
+# time not implemented on this platform
+
+json = ["sqlx-core/json", "dep:serde"]
+uuid = ["sqlx-core/uuid", "dep:uuid"]
+
+macro-support = ["sqlx-core/offline", "dep:serde", "serde/derive"]
+
+DEBUG = []
+
+
+[dependencies]
+# core dependencies
+sqlx-core    = { version = "=0.8.3" }
+worker       = { version = "0.5", features = ["d1"] }
+worker-sys   = { version = "0.5", features = ["d1"] }
+futures-core = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
+log          = "0.4" # required for `sqlx_core::connection::ConnectOptions`
+
+# optional dependencies
+serde  = { optional = true, version = "1.0" }
+uuid   = { optional = true, version = "1.14" }
+
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sqlx-sqlite = { version = "=0.8.3", features = ["bundled"] }

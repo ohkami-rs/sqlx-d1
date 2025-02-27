@@ -1344,10 +1344,18 @@ dependencies = [
  "log",
  "serde",
  "sqlx-core",
+ "sqlx-d1-macros",
  "sqlx-sqlite",
  "uuid",
  "worker",
  "worker-sys",
+]
+
+[[package]]
+name = "sqlx-d1-macros"
+version = "0.1.0"
+dependencies = [
+ "sqlx-macros-core",
 ]
 
 [[package]]
