@@ -1,6 +1,7 @@
 mod input;
 
-use std::sync::{LazyLock, Once};
+use std::io;
+use std::sync::{LazyLock, OnceLock, Once};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
 use syn::spanned::Spanned;
@@ -47,17 +48,8 @@ static LOCATION: LazyLock<Location> = LazyLock::new(|| {
         workspace_root: LazyLock::new(get_workspace_root)
     }
 });
-
-/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros/src/lib.rs#L9-L23>
-#[proc_macro]
-pub fn expand_query(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    self::expand_input(input.into())
-        .unwrap_or_else(syn::Error::into_compile_error)
-        .into()
-}
-
-fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
-    let sqlite_file_path = {
+impl Location {
+    fn miniflare_sqlite_file(&self) -> Result<PathBuf, io::Error> {
         fn miniflare_d1_dir_in_a_package_root(package_root: impl AsRef<Path>) -> PathBuf {
             package_root.as_ref()
                 .join(".wrangler")
@@ -70,58 +62,82 @@ fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
         let miniflare_d1_dir = {
             ({
                 let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.manifest_dir);
-                std::fs::exists(&candidate).is_ok_and(|e|e).then_some(candidate)
+                std::fs::exists(&candidate)?.then_some(candidate)
             })
             .or_else(|| {
                 let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.workspace_root);
-                std::fs::exists(&candidate).is_ok_and(|e|e).then_some(candidate)
+                std::fs::exists(&candidate).ok()?.then_some(candidate)
             })
-            .ok_or_else(|| syn::Error::new(Span::call_site(),
+            .ok_or_else(|| io::Error::new(
+                io::ErrorKind::NotFound,
                 "Miniflare's D1 emulator is not found. Make sure to run \
                 `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
                 `wrangler d1 migrations apply <BINDING> --local`."
             ))?
         };
     
-        let mut sqlite_files = std::fs::read_dir(miniflare_d1_dir)
-            .map_err(|e| syn::Error::new(Span::call_site(), format!(
-                "Failed to read Miniflare's D1 emulator: {e}"
-            )))?
+        let mut sqlite_files = std::fs::read_dir(miniflare_d1_dir)?
             .filter_map(|r| r.as_ref().ok().map(|e| e.path()))
             .filter(|p| p.extension().is_some_and(|x| x == "sqlite"))
             .collect::<Vec<_>>();
     
         match sqlite_files.len() {
-            0 => return Err(syn::Error::new(Span::call_site(),
+            0 => Err(io::Error::new(
+                io::ErrorKind::NotFound,
                 "No Miniflare's D1 emulator is found! Make sure to run \
                 `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
                 `wrangler d1 migrations apply <BINDING> --local`."
             )),
-            2.. => return Err(syn::Error::new(Span::call_site(),
+            2.. => Err(io::Error::new(
+                io::ErrorKind::Other,
                 "Multiple Miniflare's D1 emulators are found! \
                 Sorry, sqlx_d1 only supports single D1 binding now."
             )),
-            1 => sqlite_files.pop().unwrap()
+            1 => Ok(sqlite_files.pop().unwrap())
         }
+    }
+}
+
+/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros/src/lib.rs#L9-L23>
+#[proc_macro]
+pub fn expand_query(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    self::expand_input(input.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
+    use sqlx_d1_core::D1Connection;
+    use sqlx_core::{executor::Executor, describe::Describe};
+    use std::sync::Arc;
+    // Assumeing the cost of context switching is almost the same
+    // or larger than that of synchronous blocking in this case
+    use std::sync::Mutex;
+    
+    let input = syn::parse2::<self::input::QueryMacroInput>(input)?;
+    
+    let describe = {
+        static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
+
+        let mut conn = CONNECTION.get_or_init(|| {
+            let sqlite_file_path = LOCATION
+                .miniflare_sqlite_file()
+                .map_err(|e| syn::Error::new(Span::call_site(), e))?;
+                
+            futures_lite::future::block_on(async {
+                let conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
+                    .await
+                    .map_err(|e| syn::Error::new(Span::call_site(), e))?;
+                Ok(Mutex::new(conn))
+            })
+        }).as_ref().map_err(Clone::clone)?.lock().unwrap();
+
+        futures_lite::future::block_on(async {
+            conn.describe(&input.sql).await
+        }).map_err(|e| syn::Error::new(input.src_span, e))?
     };
 
-    static SET_DATABASE_URL: Once = Once::new();
-    SET_DATABASE_URL.call_once(|| unsafe {
-        /* SAFETY: call in `Once::call_once` */
-        std::env::set_var("DATABASE_URL", format!("sqlite://{}", sqlite_file_path.display()));
-    });
+    
 
-    /*
-        now environment variable `DATABASE_URL` points to the sqlite file for
-        Miniflare's D1 emulator, let's call original `expand_input` for SQLite...
-    */
-
-    let span = input.span();
     Ok(quote! {""})
-
-//    let qinput = syn::parse2::<QueryMacroInput>(input)?;
-//    let driver = QueryDriver::new::<Sqlite>();
-//
-//    sqlx_macros_core::query::expand_input(qinput, &[driver])
-//        .map_err(|e| syn::Error::new(span, e.to_string()))
 }

@@ -20,11 +20,13 @@ sqlx-d1-macros = { path = "../sqlx-d1-macros", version = "=0.1.0", optional = tr
 json   = ["sqlx-d1-core/json"]
 uuid   = ["sqlx-d1-core/uuid"]
 macros = ["dep:sqlx-d1-macros"]
-DEBUG  = ["sqlx-d1-core/DEBUG"]
 
+################################
+DEBUG   = ["sqlx-d1-core/DEBUG"]
 default = [
     "json",
     "uuid",
     "macros",
     "DEBUG",
 ]
+################################

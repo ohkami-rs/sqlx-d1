@@ -20,10 +20,15 @@ const _: () = {
     unsafe impl Send for D1Connection {}
     unsafe impl Sync for D1Connection {}
 
-    #[cfg(target_arch = "wasm32")]
     impl D1Connection {
+        #[cfg(target_arch = "wasm32")]
         pub fn new(d1: worker::D1Database) -> Self {
             Self { inner: unsafe {std::mem::transmute(d1)} }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        pub async fn connect(url: impl AsRef<str>) -> Result<Self, sqlx_core::Error> {
+            <Self as sqlx_core::connection::Connection>::connect(url.as_ref()).await
         }
     }
 
@@ -500,11 +505,11 @@ const _: () = {
         }
 
         fn log_statements(self, _: log::LevelFilter) -> Self {
-            unreachable!("{}", LOG_SETTINGS_UNSUPPORTED_MESSAGE)
+            unreachable!("{LOG_SETTINGS_UNSUPPORTED_MESSAGE}")
         }
 
         fn log_slow_statements(self, _: log::LevelFilter, _: std::time::Duration) -> Self {
-            unreachable!("{}", LOG_SETTINGS_UNSUPPORTED_MESSAGE)
+            unreachable!("{LOG_SETTINGS_UNSUPPORTED_MESSAGE}")
         }
     }
 };
