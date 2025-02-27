@@ -2,7 +2,7 @@ mod input;
 mod output;
 
 use std::io;
-use std::sync::{LazyLock, OnceLock, Once};
+use std::sync::{LazyLock, OnceLock};
 use std::path::{Path, PathBuf};
 use proc_macro2::{TokenStream, Span};
 use syn::LitStr;
@@ -109,8 +109,7 @@ pub fn expand_query(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
     use sqlx_d1_core::D1Connection;
-    use sqlx_core::{executor::Executor, describe::Describe};
-    use std::sync::Arc;
+    use sqlx_core::executor::Executor;
     // Assumeing the cost of context switching is almost the same
     // or larger than that of synchronous blocking in this case
     use std::sync::Mutex;
