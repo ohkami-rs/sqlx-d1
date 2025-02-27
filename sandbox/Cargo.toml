@@ -10,11 +10,11 @@ crate-type = ["cdylib", "rlib"]
 opt-level = "s"
 
 [dependencies]
+sqlx-d1 = { path = "../sqlx-d1", features = ["macros"] }
+sqlx = { version = "0.8" }
 console_error_panic_hook = "0.1"
 thiserror = "2.0"
 worker = { version = "0.5" }
-sqlx = { version = "0.8" }
-sqlx-d1 = { path = "../sqlx-d1" }
 
 [dependencies.ohkami]
 git = "https://github.com/ohkami-rs/ohkami"

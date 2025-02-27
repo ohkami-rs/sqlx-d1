@@ -1,6 +1,5 @@
 use crate::type_info::D1TypeInfo;
 
-#[cfg_attr(feature = "macro-support", derive(serde::Serialize, serde::Deserialize))]
 pub struct D1Column {
     pub(crate) ordinal: usize,
     pub(crate) name: sqlx_core::ext::ustr::UStr,

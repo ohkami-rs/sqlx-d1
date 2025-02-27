@@ -9,6 +9,8 @@ mod arguments;
 mod statement;
 mod query_result;
 mod types;
+#[cfg(feature = "macros")]
+mod macros;
 
 type ResultFuture<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
 
@@ -43,4 +45,10 @@ impl sqlx_core::database::Database for D1 {
     const NAME: &'static str = "D1";
 
     const URL_SCHEMES: &'static [&'static str] = &["d1"];
+}
+
+#[doc(hidden)]
+pub mod internal {
+    #[cfg(feature = "macros")]
+    pub use sqlx_d1_macros;
 }

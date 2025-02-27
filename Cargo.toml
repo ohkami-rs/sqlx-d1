@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members  = [".", "sqlx-d1-core", "sqlx-d1-macros"]
+members  = ["sqlx-d1", "sqlx-d1-macros"]
 exclude  = ["sandbox"]
 
 [workspace.package]
@@ -13,34 +13,3 @@ readme     = "README.md"
 keywords   = ["cloudflare", "d1", "sqlx", "database", "db"]
 categories = ["database", "asynchronous", "wasm", "rust-patterns", "network-programming"]
 license    = "MIT"
-
-[package]
-name          = "sqlx-d1"
-documentation = "https://docs.rs/sqlx-d1"
-description   = "SQLx for Cloudflare D1"
-version       = { workspace = true }
-edition       = { workspace = true }
-authors       = { workspace = true }
-homepage      = { workspace = true }
-repository    = { workspace = true }
-readme        = { workspace = true }
-keywords      = { workspace = true }
-categories    = { workspace = true }
-license       = { workspace = true }
-
-[package.metadata.docs.rs]
-features = ["macros", "json", "uuid"]
-
-[dependencies]
-sqlx-d1-core   = { path = "sqlx-d1-core",   version = "=0.1.0" }
-sqlx-d1-macros = { path = "sqlx-d1-macros", version = "=0.1.0", optional = true }
-
-[features]
-macros = ["dep:sqlx-d1-macros", "sqlx-d1-core/macro-support"]
-json   = ["sqlx-d1-core/json"]
-uuid   = ["sqlx-d1-core/uuid"]
-
-##################################
-DEBUG = ["sqlx-d1-core/DEBUG", "macros", "json", "uuid"]
-# default = ["DEBUG"]
-##################################
