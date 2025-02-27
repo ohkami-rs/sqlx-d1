@@ -53,6 +53,22 @@ pub enum RenameAll {
     CamelCase,
     PascalCase,
 }
+impl RenameAll {
+    /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/derives/mod.rs#L27-L37>
+    pub(super) fn apply(self, s: &str) -> String {
+        use heck::{ToKebabCase, ToLowerCamelCase, ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
+
+        match self {
+            RenameAll::LowerCase => s.to_lowercase(),
+            RenameAll::SnakeCase => s.to_snake_case(),
+            RenameAll::UpperCase => s.to_uppercase(),
+            RenameAll::ScreamingSnakeCase => s.to_shouty_snake_case(),
+            RenameAll::KebabCase => s.to_kebab_case(),
+            RenameAll::CamelCase => s.to_lower_camel_case(),
+            RenameAll::PascalCase => s.to_upper_camel_case(),
+        }
+    }
+}
 
 pub struct SqlxContainerAttributes {
     pub transparent: bool,
