@@ -24,3 +24,4 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
 ## TODO features
 
 - offline mode
+- chrono integration

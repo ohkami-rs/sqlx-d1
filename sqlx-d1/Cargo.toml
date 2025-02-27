@@ -22,11 +22,11 @@ uuid   = ["sqlx-d1-core/uuid"]
 macros = ["dep:sqlx-d1-macros"]
 
 ################################
-DEBUG   = ["sqlx-d1-core/DEBUG"]
-default = [
-    "json",
-    "uuid",
-    "macros",
-    "DEBUG",
-]
+DEBUG = ["sqlx-d1-core/DEBUG"]
+# default = [
+#     "json",
+#     "uuid",
+#     "macros",
+#     "DEBUG",
+# ]
 ################################
