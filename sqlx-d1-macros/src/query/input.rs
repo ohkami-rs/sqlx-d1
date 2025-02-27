@@ -149,7 +149,7 @@ impl QueryMacroInput {
                         return Ok(TokenStream::new());
                     }
 
-                    let param_type_name = crate::param_type_name_for_info(&param_type_info)
+                    let param_type_name = super::param_type_name_for_info(&param_type_info)
                         .ok_or_else(|| syn::Error::new(
                             param_expr.span(),
                             format!("unsupported type {param_type_info} for param #{}", i + 1)
@@ -259,7 +259,7 @@ fn resolve_path(path: impl AsRef<Path>, err_span: Span) -> syn::Result<PathBuf> 
         ));
     }
 
-    Ok(crate::LOCATION.manifest_dir.join(path))
+    Ok(super::LOCATION.manifest_dir.join(path))
 }
 
 fn strip_wildcard(expr: Expr) -> Expr {

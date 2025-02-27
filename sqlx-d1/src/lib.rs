@@ -1,4 +1,10 @@
 #[cfg(feature = "macros")]
-mod macros;
+#[doc(hidden)]
+pub mod macros;
+
+#[cfg(feature = "macros")]
+pub use sqlx_d1_macros::FromRow;
+
+pub use sqlx_d1_core::sqlx_core::from_row::FromRow;
 
 pub use sqlx_d1_core::*;

@@ -7,7 +7,7 @@ struct Bindings {
     DB: ohkami::bindings::D1,
 }
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Serialize, sqlx_d1::FromRow)]
 struct User {
     id: u32,
     name: String,
@@ -22,8 +22,8 @@ struct CreateUserRequest<'req> {
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
-    #[error("Error from sqlx: {0}")]
-    Sqlx(#[from] sqlx::Error),
+    #[error("Error from D1: {0}")]
+    D1(#[from] sqlx_d1::D1Error),
     #[error("Error not found {0}")]
     ResourceNotFound(String),
 }
@@ -31,7 +31,7 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         worker::console_error!("{self}");
         match self {
-            Self::Sqlx(_) => Response::InternalServerError(),
+            Self::D1(_) => Response::InternalServerError(),
             Self::ResourceNotFound(_) => Response::NotFound(),
         }
     }
@@ -42,8 +42,6 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
 
-    let _ = sqlx_d1::query!("");
-
     Ohkami::new((
         Context::new(D1Connection::new(DB)),
         "/"
@@ -53,7 +51,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                 let sql = "
                     SELECT id, name, age FROM users
                 ";
-                let users = sqlx::query_as::<D1, User>(sql)
+                let users = sqlx_d1::query_as::<User>(sql)
                     .fetch_all(c)
                     .await?;
 
@@ -67,7 +65,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                     INSERT INTO users (name, age) VALUES (?, ?)
                     RETURNING id
                 ";
-                let created_id = sqlx::query_scalar::<D1, u32>(sql)
+                let created_id = sqlx_d1::query_scalar::<u32>(sql)
                     .bind(req.name)
                     .bind(req.age)
                     .fetch_one(c)
@@ -88,7 +86,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                     SELECT id, name, age FROM users
                     WHERE id = ?
                 ";
-                let user = sqlx::query_as::<D1, User>(sql)
+                let user = sqlx_d1::query_as::<User>(sql)
                     .bind(id)
                     .fetch_optional(c)
                     .await?

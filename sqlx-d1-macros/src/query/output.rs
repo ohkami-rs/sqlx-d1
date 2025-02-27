@@ -1,6 +1,6 @@
 //! ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/output.rs>
 
-use crate::input::QueryMacroInput;
+use super::input::QueryMacroInput;
 
 use sqlx_d1_core::D1;
 
@@ -224,7 +224,7 @@ pub fn quote_query_scalar(
 fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
     let type_info = &*column.type_info();
 
-    crate::return_type_name_for_info(&type_info)
+    super::return_type_name_for_info(&type_info)
         .map(|t| t.parse().unwrap())
         .unwrap_or_else(|| syn::Error::new(Span::call_site(), format!(
             "unsupported type {type_info} of {}",
