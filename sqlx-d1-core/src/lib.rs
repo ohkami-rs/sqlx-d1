@@ -9,8 +9,6 @@ mod arguments;
 mod statement;
 mod query_result;
 mod types;
-#[cfg(feature = "macros")]
-mod macros;
 
 type ResultFuture<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
 
@@ -47,8 +45,28 @@ impl sqlx_core::database::Database for D1 {
     const URL_SCHEMES: &'static [&'static str] = &["d1"];
 }
 
-#[doc(hidden)]
-pub mod internal {
-    #[cfg(feature = "macros")]
-    pub use sqlx_d1_macros;
+pub mod query {
+    use crate::{D1, arguments::D1Arguments, row::D1Row};
+    use sqlx_core::from_row::FromRow;
+
+    pub use sqlx_core::query::Query;
+    pub async fn query(sql: &str) -> Query<'_, D1, D1Arguments> {
+        sqlx_core::query::query(sql)
+    }
+
+    pub use sqlx_core::query_as::QueryAs;
+    pub async fn query_as<O>(sql: &str) -> QueryAs<'_, D1, O, D1Arguments>
+    where
+        O: for<'r> FromRow<'r, D1Row>,
+    {
+        sqlx_core::query_as::query_as(sql)
+    }
+
+    pub use sqlx_core::query_scalar::QueryScalar;
+    pub async fn query_scalar<S>(sql: &str) -> QueryScalar<'_, D1, S, D1Arguments>
+    where
+        (S,): for<'r> FromRow<'r, D1Row>,
+    {
+        sqlx_core::query_scalar::query_scalar(sql)
+    }
 }
