@@ -2,7 +2,7 @@ use sqlx_core::{Url, Either};
 
 #[cfg(target_arch = "wasm32")]
 use {
-    crate::{D1Error, row::D1Row},
+    crate::{error::D1Error, row::D1Row},
     std::pin::Pin,
     worker::{wasm_bindgen::JsValue, wasm_bindgen_futures::JsFuture, js_sys},
 };
@@ -295,12 +295,12 @@ const _: () = {
                 if let Some(a) = arguments {
                     statement = statement
                         .bind(a.as_ref().iter().collect())
-                        .map_err(|e| sqlx_core::Error::Encode(Box::new(crate::D1Error::from(e))))?;
+                        .map_err(|e| sqlx_core::Error::Encode(Box::new(D1Error::from(e))))?;
                 }
 
                 let raw = JsFuture::from(statement.first(None).map_err(D1Error::from)?)
                     .await
-                    .map_err(crate::D1Error::from)?;
+                    .map_err(D1Error::from)?;
                 if raw.is_null() {
                     Ok(None)
                 } else {

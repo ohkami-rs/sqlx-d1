@@ -23,7 +23,7 @@ struct CreateUserRequest<'req> {
 #[derive(Debug, thiserror::Error)]
 enum Error {
     #[error("Error from D1: {0}")]
-    D1(#[from] sqlx_d1::D1Error),
+    D1(#[from] sqlx_d1::Error),
     #[error("Error not found {0}")]
     ResourceNotFound(String),
 }

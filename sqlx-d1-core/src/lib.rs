@@ -12,8 +12,6 @@ mod types;
 
 type ResultFuture<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
 
-pub use error::D1Error;
-
 pub use connection::{D1Connection, D1ConnectOptions};
 
 #[derive(Debug)]
@@ -93,6 +91,8 @@ pub use query::{
     query_as, query_as_with,
     query_scalar, query_scalar_with,
 };
+
+pub use sqlx_core::Error;
 
 #[doc(hidden)]
 pub use sqlx_core;
