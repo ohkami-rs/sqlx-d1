@@ -2,11 +2,7 @@
 
 mod attributes;
 
-use self::attributes::{
-    parse_child_attributes,
-    parse_container_attributes,
-    RenameAll,
-};
+use self::attributes::{parse_child_attributes, parse_container_attributes};
 
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
