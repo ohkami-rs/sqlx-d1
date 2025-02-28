@@ -34,3 +34,6 @@ default = [
     "DEBUG",
 ]
 ################################
+
+[dev-dependencies]
+worker = { version = "0.5", features = ["d1"] }
