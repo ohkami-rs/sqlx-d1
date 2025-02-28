@@ -36,7 +36,7 @@ jobs:
           cargo build --features uuid
           cargo build --features chrono
           cargo build --features macros
-          cargo build --features json,uuid,chorono,macros
+          cargo build --features json,uuid,chrono,macros
 
       - name: Check sandbox
         working-directory: ./sandbox
