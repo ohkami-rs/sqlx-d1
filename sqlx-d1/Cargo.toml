@@ -25,7 +25,7 @@ query  = ["dep:sqlx-d1-macros", "sqlx-d1-macros/query"]
 derive = ["dep:sqlx-d1-macros", "sqlx-d1-macros/derive"]
 
 ################################
-DEBUG = ["sqlx-d1-core/DEBUG"]
+DEBUG = ["sqlx-d1-core/DEBUG", "sqlx-d1-macros/DEBUG"]
 default = [
     "json",
     "uuid",
@@ -34,3 +34,6 @@ default = [
     "DEBUG",
 ]
 ################################
+
+[dev-dependencies]
+worker = { version = "0.5", features = ["d1"] }

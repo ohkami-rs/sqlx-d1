@@ -1,3 +1,6 @@
+/* enable run static tests for sample codes in README */
+#![cfg_attr(feature = "DEBUG", doc = include_str!("../../README.md"))]
+
 #[cfg(feature = "query")]
 #[doc(hidden)]
 pub mod macros;
