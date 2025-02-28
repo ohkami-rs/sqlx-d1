@@ -1,7 +1,9 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "offline", derive(serde::Serialize, serde::Deserialize))]
 pub struct D1TypeInfo(D1Type);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "offline", derive(serde::Serialize, serde::Deserialize))]
 enum D1Type {
     Null,
     Real,

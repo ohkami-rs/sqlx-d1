@@ -19,7 +19,7 @@ sqlx-d1-macros = { path = "../sqlx-d1-macros", version = "=0.1.0", optional = tr
 [features]
 json   = ["sqlx-d1-core/json"]
 uuid   = ["sqlx-d1-core/uuid",  "sqlx-d1-macros?/uuid"]
-macros = ["dep:sqlx-d1-macros", "sqlx-d1-macros/derive", "sqlx-d1-macros/query"]
+macros = ["dep:sqlx-d1-macros", "sqlx-d1-macros/derive", "sqlx-d1-macros/query", "sqlx-d1-core/offline"]
 derive = ["dep:sqlx-d1-macros", "sqlx-d1-macros/derive"]
 
 ################################

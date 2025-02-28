@@ -97,6 +97,59 @@ impl Location {
             1 => Ok(sqlite_files.pop().unwrap())
         }
     }
+
+    fn dot_sqlx_dir(&self) -> Result<Option<DotSqlx>, io::Error> {
+        for parent_candidate in [
+            &*LOCATION.manifest_dir,
+            &*LOCATION.workspace_root,
+        ] {
+            if let Some(it) = DotSqlx::new_in_parent(parent_candidate)? {
+                return Ok(Some(it))
+            }
+        }
+        Ok(None)
+    }
+}
+
+struct DotSqlx(PathBuf);
+impl DotSqlx {
+    fn new_in_parent(parent_dir: &Path) -> Result<Option<Self>, io::Error> {
+        let candidate = parent_dir.join(".sqlx");
+        if std::fs::exists(&candidate)? && candidate.is_dir() {
+            Ok(Some(DotSqlx(candidate)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn get_cached_describe(&self, sql: &str) -> Result<Option<sqlx_core::describe::Describe>, io::Error> {
+        /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L193-L198>
+        let hash = {
+            use sha2::{Digest, Sha256};
+            ::hex::encode(Sha256::digest(sql.as_bytes()))
+        };
+
+        /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/mod.rs#L165>
+        let file_name = format!("query-{hash}.json");
+
+        match std::fs::read(self.0.join(file_name)) {
+            Ok(bytes) => {
+                let describe = ::serde_json::from_slice(&bytes).map_err(|e| io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("failed to parse the query cache: {e}")
+                ))?;
+                Ok(Some(describe))
+            }
+            Err(e) => if matches!(e.kind(), io::ErrorKind::NotFound) {
+                Err(io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("there is no cached data for this query, run `cargo sqlx prepare` to update the query cache")
+                ))
+            } else {
+                Err(e)
+            }
+        }
+    }
 }
 
 pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
@@ -108,25 +161,39 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
     
     let input = syn::parse2::<self::input::QueryMacroInput>(input)?;
     
-    let describe = {
-        static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
+    let describe = match LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {
+        Some(dot_sqlx_dir) => {
+            dot_sqlx_dir.get_cached_describe(&input.sql)
+                .map_err(|e| syn::Error::new(ipnut.src_span, e))
+                .ok_or_else(|| syn::Error::new(
+                    input.src_span,
+                    "there is no cached data for this query, run `cargo sqlx prepare` to update the query cache"
+                ))
+        }
+        None => {
+            static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
 
-        let mut conn = CONNECTION.get_or_init(|| {
-            let sqlite_file_path = LOCATION
-                .miniflare_sqlite_file()
-                .map_err(|e| syn::Error::new(Span::call_site(), e))?;
-                
+            let mut conn = CONNECTION.get_or_init(|| {
+                let sqlite_file_path = LOCATION
+                    .miniflare_sqlite_file()
+                    .map_err(|e| syn::Error::new(
+                        Span::call_site(),
+                        format!(".sqlx directory ( for offline mode ) is not found and {e}")
+                    ))?;
+
+                futures_lite::future::block_on(async {
+                    let conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
+                        .await
+                        .map_err(|e| syn::Error::new(Span::call_site(), e))?;
+                    Ok(Mutex::new(conn))
+                })
+            }).as_ref().map_err(Clone::clone)?.lock().unwrap();
+
             futures_lite::future::block_on(async {
-                let conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
-                    .await
-                    .map_err(|e| syn::Error::new(Span::call_site(), e))?;
-                Ok(Mutex::new(conn))
-            })
-        }).as_ref().map_err(Clone::clone)?.lock().unwrap();
+                conn.describe(&input.sql).await
+            }).map_err(|e| syn::Error::new(input.src_span, e))?
 
-        futures_lite::future::block_on(async {
-            conn.describe(&input.sql).await
-        }).map_err(|e| syn::Error::new(input.src_span, e))?
+        }
     };
 
     compare_expand(input, describe)
