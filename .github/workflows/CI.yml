@@ -42,7 +42,7 @@ jobs:
         run: |
           mv ./wrangler.toml.sample ./wrangler.toml
           mv ./.sqlx ./tmp
-          cargo build 2>&1 tee tmp.log \
+          cargo build 2>&1 | tee tmp.log \
             && (echo 'unexpectedly build scceeded'; exit 1) \
             || (grep 'Neither miniflare D1 emulator nor .sqlx directory is found !' tmp.log && echo 'expected behavior' || exit 1)
           mv ./tmp ./.sqlx
