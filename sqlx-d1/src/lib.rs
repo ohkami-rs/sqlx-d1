@@ -2,7 +2,7 @@
 #[doc(hidden)]
 pub mod macros;
 
-#[cfg(feature = "macros")]
+#[cfg(any(feature = "derive", feature = "macros"))]
 pub use sqlx_d1_macros::FromRow;
 
 pub use sqlx_d1_core::sqlx_core::from_row::FromRow;

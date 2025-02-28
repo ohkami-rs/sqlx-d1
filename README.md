@@ -5,7 +5,7 @@
 
 <br>
 
-SQLx-D1 realizes "SQLx for Cloudflare D1" with _**compile-time SQL verification**_ in Rust Cloudflare development !
+SQLx-D1 realizes "SQLx for Cloudflare D1"  _**withcompile-time SQL verification**_ in Rust Cloudflare development !
 
 ## Background
 
@@ -63,3 +63,7 @@ async fn main(
     worker::Response::ok("Hello, sqlx_d1 !")
 }
 ```
+
+## LICENSE
+
+SQLx-D1 is licensed under MIT LICENSE ( [LICENSE](https://github.com/ohkami-rs/sqlx-d1/blob/main/LICENSE) or https://opensource.org/licenses/MIT ) .

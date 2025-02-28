@@ -19,10 +19,10 @@ features = ["json", "uuid"]
 [features]
 # time not implemented on this platform
 
-json = ["sqlx-core/json", "dep:serde"]
-uuid = ["sqlx-core/uuid", "dep:uuid"]
-
-DEBUG = []
+json    = ["sqlx-core/json", "dep:serde"]
+uuid    = ["sqlx-core/uuid", "dep:uuid"]
+offline = []
+DEBUG   = []
 
 
 [dependencies]

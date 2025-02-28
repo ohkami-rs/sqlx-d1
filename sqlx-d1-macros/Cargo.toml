@@ -17,6 +17,8 @@ proc-macro = true
 
 [features]
 uuid = []
+query  = []
+derive = []
 
 [dependencies]
 sqlx-d1-core     = { path = "../sqlx-d1-core", version = "=0.1.0" }
