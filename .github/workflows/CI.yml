@@ -31,12 +31,12 @@ jobs:
 
       - name: Test documentations
         working-directory: ./sqlx-d1
-        run: cargo test --doc --features DEBUG --target wasm32-unknown-unknown
+        run: cargo test --doc --target wasm32-unknown-unknown --features DEBUG
 
       - name: Check buildability
         working-directory: ./sqlx-d1
         run: |
-          TARGET=(test ${{ matrix.target }} && ${{ matrix.target }} || (rustc -vV | grep 'host' | sed 's/host: //'))
+          TARGET=(test '${{ matrix.target }}'' && '${{ matrix.target }}' || (rustc -vV | grep 'host' | sed 's/host: //'))
           cargo build --target $TARGET
           cargo build --target $TARGET --features json
           cargo build --target $TARGET --features uuid
