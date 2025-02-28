@@ -18,6 +18,7 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
 ## Features
 
 - SQLx interface for Cloudflare D1
+- Batteries included, `sqlx` is not needed in dependencies
 - Compile-time SQL verification
     - by `sqlx-sqlite` and miniflare's local D1 emulator
     - by query caches in `.sqlx` directory ( offline mode )
@@ -41,7 +42,7 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
 # Cargo.toml
 
 [dependencies]
-sqlx_d1 = { git = "https://github.com/ohkami-rs/sqlx-d1" }
+sqlx_d1 = { version = "0.1", features = ["macros"] }
 worker = { version = "0.5", features = ["d1"] }
 ```
 ```toml

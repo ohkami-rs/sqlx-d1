@@ -62,12 +62,16 @@ impl D1TypeInfo {
     pub(crate) const fn boolean() -> Self {
         Self(D1Type::Boolean)
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) const fn date() -> Self {
         Self(D1Type::Date)
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) const fn time() -> Self {
         Self(D1Type::Time)
     }
+    #[cfg(not(target_arch = "wasm32"))]
     pub(crate) const fn datetime() -> Self {
         Self(D1Type::Datetime)
     }
