@@ -15,15 +15,14 @@ license       = { workspace = true }
 [package.metadata.docs.rs]
 features = ["json", "uuid"]
 
-
 [features]
 # time not implemented on this platform
 
-json    = ["sqlx-core/json",    "dep:serde"]
-uuid    = ["sqlx-core/uuid",    "dep:uuid"]
-offline = ["sqlx-core/offline", "dep:serde", "serde/derive"]
+json    = ["sqlx-core/json"]
+uuid    = ["sqlx-core/uuid"]
+chrono  = ["sqlx-core/chrono"]
+offline = ["sqlx-core/offline", "serde/derive"]
 DEBUG   = []
-
 
 [dependencies]
 # core dependencies
@@ -32,12 +31,8 @@ worker       = { version = "0.5", features = ["d1"] }
 worker-sys   = { version = "0.5", features = ["d1"] }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
-log          = "0.4"  # required for `sqlx_core::connection::ConnectOptions`
-
-# optional dependencies
-serde = { optional = true, version = "1.0" }
-uuid  = { optional = true, version = "1.14" }
-
+serde        = { version = "1.0" }
+log          = { version = "0.4" }  # required for `sqlx_core::connection::ConnectOptions`
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 sqlx-sqlite = { version = "=0.8.3", features = ["bundled"] }

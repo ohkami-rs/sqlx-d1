@@ -16,7 +16,6 @@ license       = { workspace = true }
 proc-macro = true
 
 [features]
-uuid = []
 derive = ["dep:heck"]
 query  = ["dep:sha2", "dep:hex", "dep:futures-lite", "sqlx-d1-core/offline"]
 

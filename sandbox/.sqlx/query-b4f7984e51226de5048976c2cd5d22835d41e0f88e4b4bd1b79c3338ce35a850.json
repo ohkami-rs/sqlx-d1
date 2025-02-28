@@ -1,1 +1,1 @@
-{"columns":[{"ordinal":0,"name":"id","type_info":"Integer"}],"parameters":{"Right":2},"nullable":[false]}
+{"columns":[{"ordinal":0,"name":"id","type_info":"INTEGER"}],"parameters":{"Right":2},"nullable":[false]}

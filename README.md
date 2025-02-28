@@ -31,11 +31,9 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
     - Let's wait for Cloudflare's side to support transation on D1 !
 - Connection pool ( `sqlx::Pool` internally requires Rust async runtime (tokio / asycn-std) and time implemetation of WASM runtime which is not done on Cloudflare Workers )
     - alternatively, `&sqlx_d1::D1Connection` implements `Executor`, not only `&mut` one.
-
-## TODO features
-
-- chrono integration
 - derive `Type`, `Encode`, `Decode`
+    - maybe added if requested
+    - workaround if needed: add `sqlx` to dependencies and use its ones
 
 ## Example
 

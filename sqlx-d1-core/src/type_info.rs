@@ -4,7 +4,8 @@ pub struct D1TypeInfo(D1Type);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "offline", derive(serde::Serialize, serde::Deserialize))]
-enum D1Type {
+#[cfg_attr(feature = "offline", serde(rename_all = "UPPERCASE"))]
+pub enum D1Type {
     Null,
     Real,
     Integer,
@@ -16,6 +17,10 @@ enum D1Type {
     /// 
     /// see `type_checking!` in `types` module and its expansion / reference.
     Boolean,
+
+    Date,
+    Time,
+    Datetime,
 }
 
 impl D1TypeInfo {
@@ -30,7 +35,10 @@ impl D1TypeInfo {
             "REAL" => Self::real(),
             "BLOB" => Self::blob(),
             "INTEGER" | "NUMERIC" => Self::integer(),
-            "BOOLEAN" => Self(D1Type::Boolean),
+            "BOOLEAN" => Self::boolean(),
+            "DATE" => Self::date(),
+            "TIME" => Self::time(),
+            "DATETIME" => Self::datetime(),
             _ => *Self::unknown()
         }
     }
@@ -54,6 +62,16 @@ impl D1TypeInfo {
     pub(crate) const fn boolean() -> Self {
         Self(D1Type::Boolean)
     }
+    pub(crate) const fn date() -> Self {
+        Self(D1Type::Date)
+    }
+    pub(crate) const fn time() -> Self {
+        Self(D1Type::Time)
+    }
+    pub(crate) const fn datetime() -> Self {
+        Self(D1Type::Datetime)
+    }
+
     pub(crate) const fn unknown() -> &'static Self {
         /* most least-bad choice */
         &Self(D1Type::Blob)
@@ -84,6 +102,14 @@ impl std::fmt::Display for D1TypeInfo {
     }
 }
 
+impl std::ops::Deref for D1TypeInfo {
+    type Target = D1Type;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl sqlx_core::type_info::TypeInfo for D1TypeInfo {
     fn is_null(&self) -> bool {
         matches!(self.0, D1Type::Null)
@@ -96,7 +122,11 @@ impl sqlx_core::type_info::TypeInfo for D1TypeInfo {
             D1Type::Real    => "REAL",
             D1Type::Blob    => "BLOB",
             D1Type::Integer => "INTEGER",
-            D1Type::Boolean => unreachable!(),
+            | D1Type::Boolean
+            | D1Type::Date
+            | D1Type::Time
+            | D1Type::Datetime
+            => unreachable!(),
         }
     }
 }
