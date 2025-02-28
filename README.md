@@ -15,6 +15,16 @@ This fact has been brought a lot of Rustaceans trying `sqlx` with `sqlite` featu
 
 SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and just providing a conversion layer between D1 and SQLx **in library context**. 
 
+## Features
+
+- SQLx interface for Cloudflare D1
+- Compile-time SQL verification
+    - by `sqlx-sqlite` and miniflare's local D1 emulator
+    - by query caches in `.sqlx` directory ( offline mode )
+- No environment variable or `.env` file is needed
+    - D1 emulator's location is fixed to `.wrangler/state/v3/d1/miniflare-D1DatabaseObject`
+    - falling back to offline mode when it doesn't exist and `.sqlx` directory exists
+
 ## Unsupported features
 
 - Transaction ( let's wait for Cloudflare's side to support transation on D1 ! )
@@ -23,8 +33,8 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
 
 ## TODO features
 
-- offline mode
 - chrono integration
+- derive `Type`, `Encode`, `Decode`
 
 ## Example
 
