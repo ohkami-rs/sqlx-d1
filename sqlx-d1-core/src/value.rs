@@ -59,6 +59,12 @@ const _: () = {
             self.0.loose_eq(&worker::wasm_bindgen::JsValue::null())
         }
     }
+
+    impl<'r> std::fmt::Debug for D1ValueRef<'r> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            <D1Value as std::fmt::Debug>::fmt(&sqlx_core::value::ValueRef::to_owned(self), f)
+        }
+    }
     
     impl<'r> std::ops::Deref for D1ValueRef<'r> {
         type Target = worker::wasm_bindgen::JsValue;
