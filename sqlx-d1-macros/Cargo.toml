@@ -18,7 +18,7 @@ proc-macro = true
 [features]
 uuid = []
 derive = ["dep:heck"]
-query  = ["dep:sha2", "dep:hex", "dep:futures-lite"]
+query  = ["dep:sha2", "dep:hex", "dep:futures-lite", "sqlx-d1-core/offline"]
 
 [dependencies]
 sqlx-d1-core     = { path = "../sqlx-d1-core", version = "=0.1.0" }

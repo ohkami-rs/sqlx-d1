@@ -1,19 +1,6 @@
 //! ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/derives/attributes.rs>
 
-use proc_macro2::{Ident, Span, TokenStream};
-use quote::quote_spanned;
-use syn::{
-    punctuated::Punctuated, token::Comma, Attribute, DeriveInput, Field, LitStr, Meta, Token, Type,
-    Variant,
-};
-
-macro_rules! assert_attribute {
-    ($e:expr, $err:expr, $input:expr) => {
-        if !$e {
-            return Err(syn::Error::new_spanned($input, $err));
-        }
-    };
-}
+use syn::{Attribute, LitStr, Token, Type};
 
 macro_rules! fail {
     ($t:expr, $m:expr) => {
@@ -30,6 +17,7 @@ macro_rules! try_set {
     };
 }
 
+/*// not used in `#[derive(FromRow)]`
 pub struct TypeName {
     pub val: String,
     pub span: Span,
@@ -41,6 +29,7 @@ impl TypeName {
         quote_spanned! { self.span => #val }
     }
 }
+*/
 
 #[derive(Copy, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -71,11 +60,13 @@ impl RenameAll {
 }
 
 pub struct SqlxContainerAttributes {
-    pub transparent: bool,
-    pub type_name: Option<TypeName>,
+    /*// not used in `#[derive(FromRow)]`
+        pub transparent: bool,
+        pub type_name: Option<TypeName>,
+        pub repr: Option<Ident>,
+        pub no_pg_array: bool,
+    */
     pub rename_all: Option<RenameAll>,
-    pub repr: Option<Ident>,
-    pub no_pg_array: bool,
     pub default: bool,
 }
 
@@ -89,23 +80,35 @@ pub struct SqlxChildAttributes {
 }
 
 pub fn parse_container_attributes(input: &[Attribute]) -> syn::Result<SqlxContainerAttributes> {
-    let mut transparent = None;
-    let mut repr = None;
-    let mut type_name = None;
+    /*// not used in `#[derive(FromRow)]`
+        let mut transparent = None;
+        let mut repr = None;
+        let mut type_name = None;
+        let mut no_pg_array = None;
+    */
     let mut rename_all = None;
-    let mut no_pg_array = None;
     let mut default = None;
 
     for attr in input {
         if attr.path().is_ident("sqlx") {
             attr.parse_nested_meta(|meta| {
-                if meta.path.is_ident("transparent") {
-                    try_set!(transparent, true, attr);
-                } else if meta.path.is_ident("no_pg_array") {
-                    try_set!(no_pg_array, true, attr);
-                } else if meta.path.is_ident("default") {
-                    try_set!(default, true, attr);
-                } else if meta.path.is_ident("rename_all") {
+                /*// not used in `#[derive(FromRow)]`
+                    if meta.path.is_ident("transparent") {
+                        try_set!(transparent, true, attr);
+                    } else if meta.path.is_ident("type_name") {
+                        meta.input.parse::<Token![=]>()?;
+                        let lit: LitStr = meta.input.parse()?;
+                        let name = TypeName {
+                            val: lit.value(),
+                            span: lit.span(),
+                        };
+
+                        try_set!(type_name, name, lit)
+                    } else if meta.path.is_ident("no_pg_array") {
+                        try_set!(no_pg_array, true, attr);
+                    } else
+                */
+                if meta.path.is_ident("rename_all") {
                     meta.input.parse::<Token![=]>()?;
                     let lit: LitStr = meta.input.parse()?;
 
@@ -121,37 +124,35 @@ pub fn parse_container_attributes(input: &[Attribute]) -> syn::Result<SqlxContai
                     };
 
                     try_set!(rename_all, val, lit)
-                } else if meta.path.is_ident("type_name") {
-                    meta.input.parse::<Token![=]>()?;
-                    let lit: LitStr = meta.input.parse()?;
-                    let name = TypeName {
-                        val: lit.value(),
-                        span: lit.span(),
-                    };
-
-                    try_set!(type_name, name, lit)
+                } else if meta.path.is_ident("default") {
+                    try_set!(default, true, attr);
                 } else {
                     fail!(meta.path, "unexpected attribute")
                 }
 
                 Ok(())
             })?;
-        } else if attr.path().is_ident("repr") {
-            let list: Punctuated<Meta, Token![,]> =
-                attr.parse_args_with(<Punctuated<Meta, Token![,]>>::parse_terminated)?;
-
-            if let Some(path) = list.iter().find_map(|f| f.require_path_only().ok()) {
-                try_set!(repr, path.get_ident().unwrap().clone(), list);
-            }
         }
+        /*// not used in `#[derive(FromRow)]`
+            else if attr.path().is_ident("repr") {
+                let list: Punctuated<Meta, Token![,]> =
+                    attr.parse_args_with(<Punctuated<Meta, Token![,]>>::parse_terminated)?;
+
+                if let Some(path) = list.iter().find_map(|f| f.require_path_only().ok()) {
+                    try_set!(repr, path.get_ident().unwrap().clone(), list);
+                }
+            }
+        */
     }
 
     Ok(SqlxContainerAttributes {
-        transparent: transparent.unwrap_or(false),
-        repr,
-        type_name,
+        /*// not used in `#[derive(FromRow)]`
+            transparent: transparent.unwrap_or(false),
+            repr,
+            type_name,
+            no_pg_array: no_pg_array.unwrap_or(false),
+        */
         rename_all,
-        no_pg_array: no_pg_array.unwrap_or(false),
         default: default.unwrap_or(false),
     })
 }
@@ -203,116 +204,4 @@ pub fn parse_child_attributes(input: &[Attribute]) -> syn::Result<SqlxChildAttri
         skip,
         json,
     })
-}
-
-pub fn check_transparent_attributes(
-    input: &DeriveInput,
-    field: &Field,
-) -> syn::Result<SqlxContainerAttributes> {
-    let attributes = parse_container_attributes(&input.attrs)?;
-
-    assert_attribute!(
-        attributes.rename_all.is_none(),
-        "unexpected #[sqlx(rename_all = ..)]",
-        field
-    );
-
-    let ch_attributes = parse_child_attributes(&field.attrs)?;
-
-    assert_attribute!(
-        ch_attributes.rename.is_none(),
-        "unexpected #[sqlx(rename = ..)]",
-        field
-    );
-
-    Ok(attributes)
-}
-
-pub fn check_enum_attributes(input: &DeriveInput) -> syn::Result<SqlxContainerAttributes> {
-    let attributes = parse_container_attributes(&input.attrs)?;
-
-    assert_attribute!(
-        !attributes.transparent,
-        "unexpected #[sqlx(transparent)]",
-        input
-    );
-
-    Ok(attributes)
-}
-
-pub fn check_weak_enum_attributes(
-    input: &DeriveInput,
-    variants: &Punctuated<Variant, Comma>,
-) -> syn::Result<SqlxContainerAttributes> {
-    let attributes = check_enum_attributes(input)?;
-
-    assert_attribute!(attributes.repr.is_some(), "expected #[repr(..)]", input);
-
-    assert_attribute!(
-        attributes.rename_all.is_none(),
-        "unexpected #[sqlx(c = ..)]",
-        input
-    );
-
-    for variant in variants {
-        let attributes = parse_child_attributes(&variant.attrs)?;
-
-        assert_attribute!(
-            attributes.rename.is_none(),
-            "unexpected #[sqlx(rename = ..)]",
-            variant
-        );
-    }
-
-    Ok(attributes)
-}
-
-pub fn check_strong_enum_attributes(
-    input: &DeriveInput,
-    _variants: &Punctuated<Variant, Comma>,
-) -> syn::Result<SqlxContainerAttributes> {
-    let attributes = check_enum_attributes(input)?;
-
-    assert_attribute!(attributes.repr.is_none(), "unexpected #[repr(..)]", input);
-
-    Ok(attributes)
-}
-
-pub fn check_struct_attributes(
-    input: &DeriveInput,
-    fields: &Punctuated<Field, Comma>,
-) -> syn::Result<SqlxContainerAttributes> {
-    let attributes = parse_container_attributes(&input.attrs)?;
-
-    assert_attribute!(
-        !attributes.transparent,
-        "unexpected #[sqlx(transparent)]",
-        input
-    );
-
-    assert_attribute!(
-        attributes.rename_all.is_none(),
-        "unexpected #[sqlx(rename_all = ..)]",
-        input
-    );
-
-    assert_attribute!(
-        !attributes.no_pg_array,
-        "unused #[sqlx(no_pg_array)]; derive does not emit `PgHasArrayType` impls for custom structs",
-        input
-    );
-
-    assert_attribute!(attributes.repr.is_none(), "unexpected #[repr(..)]", input);
-
-    for field in fields {
-        let attributes = parse_child_attributes(&field.attrs)?;
-
-        assert_attribute!(
-            attributes.rename.is_none(),
-            "unexpected #[sqlx(rename = ..)]",
-            field
-        );
-    }
-
-    Ok(attributes)
 }

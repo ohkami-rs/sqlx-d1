@@ -1,6 +1,6 @@
 use ohkami::prelude::*;
 use ohkami::typed::status;
-use sqlx_d1::{D1, D1Connection};
+use sqlx_d1::D1Connection;
 
 #[ohkami::bindings]
 struct Bindings {
