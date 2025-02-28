@@ -101,7 +101,7 @@ serde_wasm_bindgen!(std::borrow::Cow<'_, str> as text);
 const _: (/* bool */) = {
     impl Type<D1> for bool {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
-            D1TypeInfo::integer()
+            D1TypeInfo::boolean()
         }
     }
 
@@ -252,3 +252,19 @@ const _: (/* UUID */) = {
         }
     }
 };
+
+/* ref: <https://github.com/launchbadge/sqlx/blob/277dd36c7868acb10eae20f50418e273b71c8499/sqlx-sqlite/src/type_checking.rs> */
+sqlx_core::impl_type_checking! {
+    crate::D1 {
+        bool,
+        i64,
+        f64,
+        String,
+        Vec<u8>,
+
+        #[cfg(feature = "uuid")]
+        sqlx_core::types::Uuid,
+    },
+    ParamChecking::Weak,
+    feature-types: _info => None,
+}

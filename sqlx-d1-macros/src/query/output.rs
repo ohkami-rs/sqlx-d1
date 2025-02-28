@@ -176,13 +176,14 @@ pub fn quote_query_as(
     };
 
     quote! {
-        ::sqlx_d1::query_with::<_>(#sql, #bind_args).try_map(|row: <::sqlx_d1::D1 as ::sqlx_d1::sqlx_core::database::Database>::Row| {
-            use ::sqlx_d1::sqlx_core::Row as _;
-
-            #(#instantiations)*
-
-            ::std::result::Result::Ok(#out_ty { #(#ident: #var_name),* })
-        })
+        ::sqlx_d1::sqlx_core::query::query_with_result::<::sqlx_d1::D1, _>(#sql, #bind_args)
+            .try_map(|row: <::sqlx_d1::D1 as ::sqlx_d1::sqlx_core::database::Database>::Row| {
+                use ::sqlx_d1::sqlx_core::row::Row as _;
+            
+                #(#instantiations)*
+            
+                ::std::result::Result::Ok(#out_ty { #(#ident: #var_name),* })
+            })
     }
 }
 
@@ -217,14 +218,14 @@ pub fn quote_query_scalar(
     let sql = &input.sql;
 
     Ok(quote! {
-        ::sqlx_d1::query_scalar_with::<#ty, _>(#sql, #bind_args)
+        ::sqlx_d1::sqlx_core::query_scalar::query_scalar_with_result::<::sqlx_d1::D1, #ty, _>(#sql, #bind_args)
     })
 }
 
 fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
     let type_info = &*column.type_info();
 
-    super::return_type_name_for_info(&type_info)
+    <D1 as sqlx_core::type_checking::TypeChecking>::return_type_for_id(&type_info)
         .map(|t| t.parse().unwrap())
         .unwrap_or_else(|| syn::Error::new(Span::call_site(), format!(
             "unsupported type {type_info} of {}",

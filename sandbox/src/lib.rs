@@ -9,9 +9,9 @@ struct Bindings {
 
 #[derive(Serialize, sqlx_d1::FromRow)]
 struct User {
-    id: u32,
+    id: i64,
     name: String,
-    age: Option<u8>,
+    age: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -48,10 +48,9 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
             .GET(async |
                 Context(c): Context<'_, D1Connection>,
             | -> Result<JSON<Vec<User>>, Error> {
-                let sql = "
+                let users = sqlx_d1::query_as!(User, "
                     SELECT id, name, age FROM users
-                ";
-                let users = sqlx_d1::query_as::<User>(sql)
+                ")
                     .fetch_all(c)
                     .await?;
 
@@ -61,20 +60,15 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                 Context(c): Context<'_, D1Connection>,
                 JSON(req): JSON<CreateUserRequest<'_>>,
             | -> Result<status::Created<JSON<User>>, Error> {
-                let sql = "
+                let created_id = sqlx_d1::query_scalar!("
                     INSERT INTO users (name, age) VALUES (?, ?)
                     RETURNING id
-                ";
-                let created_id = sqlx_d1::query_scalar::<u32>(sql)
-                    .bind(req.name)
-                    .bind(req.age)
-                    .fetch_one(c)
-                    .await?;
+                ", req.name, req.age).fetch_one(c).await?;
 
                 Ok(status::Created(JSON(User {
                     id: created_id,
                     name: req.name.to_string(),
-                    age: req.age,
+                    age: req.age.map(|a| a.try_into().ok()).flatten(),
                 })))
             }),
         "/:id"
@@ -82,19 +76,19 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                 id: u32,
                 Context(c): Context<'_, D1Connection>,
             | -> Result<JSON<User>, Error> {
-                let sql = "
-                    SELECT id, name, age FROM users
+                let user_record = sqlx_d1::query!("
+                    SELECT name, age FROM users
                     WHERE id = ?
-                ";
-                let user = sqlx_d1::query_as::<User>(sql)
-                    .bind(id)
-                    .fetch_optional(c)
-                    .await?
+                ", id).fetch_optional(c).await?
                     .ok_or_else(|| Error::ResourceNotFound(format!(
                         "User(id = {id})"
                     )))?;
 
-                Ok(JSON(user))
+                Ok(JSON(User {
+                    id: id.into(),
+                    name: user_record.name,
+                    age: user_record.age,
+                }))
             }),
     ))
 }
