@@ -51,8 +51,8 @@ static LOCATION: LazyLock<Location> = LazyLock::new(|| {
 });
 impl Location {
     fn miniflare_sqlite_file(&self) -> Result<Option<PathBuf>, io::Error> {
-        fn miniflare_d1_dir_in_a_package_root(package_root: impl AsRef<Path>) -> PathBuf {
-            package_root.as_ref()
+        fn miniflare_d1_dir_path_in_parent(parent_path: impl AsRef<Path>) -> PathBuf {
+            parent_path.as_ref()
                 .join(".wrangler")
                 .join("state")
                 .join("v3")
@@ -60,21 +60,17 @@ impl Location {
                 .join("miniflare-D1DatabaseObject")
         }
         
-        let miniflare_d1_dir = {
-            ({
-                let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.manifest_dir);
-                std::fs::exists(&candidate)?.then_some(candidate)
-            })
-            .or_else(|| {
-                let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.workspace_root);
-                std::fs::exists(&candidate).ok()?.then_some(candidate)
-            })
-            .ok_or_else(|| io::Error::new(
-                io::ErrorKind::NotFound,
-                "Miniflare's D1 emulator is not found. Make sure to run \
-                `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
-                `wrangler d1 migrations apply <BINDING> --local`."
-            ))?
+        let miniflare_d1_dir = 'search: {
+            for parent_candidate in [
+                &*LOCATION.manifest_dir,
+                &*LOCATION.workspace_root,
+            ] {
+                let candidate = miniflare_d1_dir_path_in_parent(parent_candidate);
+                if std::fs::exists(&candidate)? && candidate.is_dir() {
+                    break 'search candidate;
+                }
+            }
+            return Ok(None);
         };
     
         let mut sqlite_files = std::fs::read_dir(miniflare_d1_dir)?
@@ -87,7 +83,7 @@ impl Location {
             1 => Ok(sqlite_files.pop()),
             _ => Err(io::Error::new(
                 io::ErrorKind::Other,
-                "Multiple Miniflare's D1 emulators are found! \
+                "Multiple miniflare's D1 emulators are found! \
                 Sorry, sqlx_d1 only supports single D1 binding now."
             )),
         }
@@ -98,7 +94,7 @@ impl Location {
             &*LOCATION.manifest_dir,
             &*LOCATION.workspace_root,
         ] {
-            if let Some(it) = DotSqlx::new_in_parent(parent_candidate)? {
+            if let Some(it) = DotSqlx::find_in_parent(parent_candidate)? {
                 return Ok(Some(it))
             }
         }
@@ -108,7 +104,7 @@ impl Location {
 
 struct DotSqlx(PathBuf);
 impl DotSqlx {
-    fn new_in_parent(parent_dir: &Path) -> Result<Option<Self>, io::Error> {
+    fn find_in_parent(parent_dir: &Path) -> Result<Option<Self>, io::Error> {
         let candidate = parent_dir.join(".sqlx");
         if std::fs::exists(&candidate)? && candidate.is_dir() {
             Ok(Some(DotSqlx(candidate)))
@@ -200,13 +196,13 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
 
             None => return Err(syn::Error::new(
                 input.src_span,
-                "Neither Miniflare D1 emulator nor .sqlx directory is found. \n\
-                For setting up Miniflare, run \
+                "Neither miniflare D1 emulator nor .sqlx directory is found ! \n\
+                For setting up miniflare, run \
                 `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
                 `wrangler d1 migrations apply <BINDING> --local`.\n\
-                For setting up .sqlx directory, \
-                create a directory named `.sqlx` at the top of package or workspace \
-                and run `cargo sqlx prepare`."
+                For setting up .sqlx directory for offline mode, \
+                run `cargo sqlx prepare` where `cargo sqlx` is installed and \
+                miniflare D1 emulator is accessable (offen your local PC)."
             ))
         }
     };
