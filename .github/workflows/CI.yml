@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         toolchain: ['stable', 'nightly']
+        target: ['', 'wasm32-unknown-unknown']
 
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +27,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
-          targets:   x86_64-unknown-linux-gnu, wasm32-unknown-unknown
+          targets:   wasm32-unknown-unknown
 
       - name: Test documentations
         working-directory: ./sqlx-d1
@@ -35,20 +36,21 @@ jobs:
       - name: Check buildability
         working-directory: ./sqlx-d1
         run: |
-          cargo build
-          cargo build --features json
-          cargo build --features uuid
-          cargo build --features chrono
-          cargo build --features macros
-          cargo build --features json,uuid,chrono,macros
+          TARGET=(test ${{ matrix.target }} && ${{ matrix.target }} || (rustc -vV | grep 'host' | sed 's/host: //'))
+          cargo build --target $TARGET
+          cargo build --target $TARGET --features json
+          cargo build --target $TARGET --features uuid
+          cargo build --target $TARGET --features chrono
+          cargo build --target $TARGET --features macros
+          cargo build --target $TARGET --features json,uuid,chrono,macros
 
       - name: Check sandbox
         working-directory: ./sandbox
-        run: |
+        run: | # sandbox has `.cargo/config.toml` that specifies `target = "wasm32-unknown-unknown"`
           mv ./wrangler.toml.sample ./wrangler.toml
           mv ./.sqlx ./tmp
           cargo build 2>&1 | tee tmp.log \
-            && (echo 'unexpectedly build scceeded'; exit 1) \
-            || (grep 'Neither miniflare D1 emulator nor .sqlx directory is found !' tmp.log && echo 'expected behavior' || exit 1)
+            && (echo '---> unexpectedly build scceeded'; exit 1) \
+            || (grep 'Neither miniflare D1 emulator nor .sqlx directory is found !' tmp.log && echo '---> expected behavior' || exit 1)
           mv ./tmp ./.sqlx
           cargo build
