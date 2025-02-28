@@ -1,4 +1,4 @@
-#![cfg(feature = "macros")]
+#![cfg(feature = "query")]
 
 //! ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/src/macros/mod.rs>
 
@@ -9,7 +9,7 @@ pub use sqlx_d1_macros;
 /// 
 /// See [sqlx::query!](https://docs.rs/sqlx/latest/sqlx/macro.query.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query (
     ($query:expr) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source = $query)
@@ -23,7 +23,7 @@ macro_rules! query (
 /// 
 /// See [sqlx::query_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_unchecked.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_unchecked (
     ($query:expr) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source = $query, checked = false)
@@ -37,7 +37,7 @@ macro_rules! query_unchecked (
 /// 
 /// See [sqlx::query_file!](https://docs.rs/sqlx/latest/sqlx/macro.query_file.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_file (
     ($path:literal) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source_file = $path)
@@ -51,7 +51,7 @@ macro_rules! query_file (
 /// 
 /// See [sqlx::query_file_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_unchecked.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_file_unchecked (
     ($path:literal) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source_file = $path, checked = false)
@@ -65,7 +65,7 @@ macro_rules! query_file_unchecked (
 /// 
 /// See [sqlx::query_as!](https://docs.rs/sqlx/latest/sqlx/macro.query_as.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_as (
     ($out_struct:path, $query:expr) => ( {
         $crate::macros::sqlx_d1_macros::expand_query!(record = $out_struct, source = $query)
@@ -79,7 +79,7 @@ macro_rules! query_as (
 /// 
 /// See [sqlx::query_file_as!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_as.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_file_as (
     ($out_struct:path, $path:literal) => ( {
         $crate::macros::sqlx_d1_macros::expand_query!(record = $out_struct, source_file = $path)
@@ -93,7 +93,7 @@ macro_rules! query_file_as (
 /// 
 /// See [sqlx::query_as_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_as_unchecked.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_as_unchecked (
     ($out_struct:path, $query:expr) => ( {
         $crate::macros::sqlx_d1_macros::expand_query!(record = $out_struct, source = $query, checked = false)
@@ -108,7 +108,7 @@ macro_rules! query_as_unchecked (
 /// 
 /// See [sqlx::query_file_as_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_as_unchecked.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_file_as_unchecked (
     ($out_struct:path, $path:literal) => ( {
         $crate::macros::sqlx_d1_macros::expand_query!(record = $out_struct, source_file = $path, checked = false)
@@ -123,7 +123,7 @@ macro_rules! query_file_as_unchecked (
 /// 
 /// See [sqlx::query_scalor!](https://docs.rs/sqlx/latest/sqlx/macro.query_scalor.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_scalar (
     ($query:expr) => (
         $crate::macros::sqlx_d1_macros::expand_query!(scalar = _, source = $query)
@@ -137,7 +137,7 @@ macro_rules! query_scalar (
 /// 
 /// See [sqlx::query_file_scalor!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_scalor.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_file_scalar (
     ($path:literal) => (
         $crate::macros::sqlx_d1_macros::expand_query!(scalar = _, source_file = $path)
@@ -151,7 +151,7 @@ macro_rules! query_file_scalar (
 /// 
 /// See [sqlx::query_scalor_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_scalor_unchecked.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_scalar_unchecked (
     ($query:expr) => (
         $crate::macros::sqlx_d1_macros::expand_query!(scalar = _, source = $query, checked = false)
@@ -165,7 +165,7 @@ macro_rules! query_scalar_unchecked (
 /// 
 /// See [sqlx::query_file_scalor_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_scalor_unchecked.html) for details.
 #[macro_export]
-#[cfg_attr(docsrs, doc(cfg(feature = "macros")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "query")))]
 macro_rules! query_file_scalar_unchecked (
     ($path:literal) => (
         $crate::macros::sqlx_d1_macros::expand_query!(scalar = _, source_file = $path, checked = false)

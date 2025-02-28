@@ -122,21 +122,27 @@ impl DotSqlx {
         }
     }
 
-    fn get_cached_describe(&self, sql: &str) -> Result<Option<sqlx_core::describe::Describe>, io::Error> {
+    fn file_path_of(sql: &str) -> PathBuf {
         /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L193-L198>
         let hash = {
             use sha2::{Digest, Sha256};
             ::hex::encode(Sha256::digest(sql.as_bytes()))
         };
 
-        /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/mod.rs#L165>
+        /// ref:
+        /// <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/mod.rs#L165>
+        /// <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L156>
         let file_name = format!("query-{hash}.json");
 
-        match std::fs::read(self.0.join(file_name)) {
+        self.0.join(file_name)
+    }
+
+    fn get_cached_describe_of(&self, sql: &str) -> Result<Option<sqlx_core::describe::Describe>, io::Error> {
+        match std::fs::read(Self::file_path_of(sql)) {
             Ok(bytes) => {
                 let describe = ::serde_json::from_slice(&bytes).map_err(|e| io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("failed to parse the query cache: {e}")
+                    format!("failed to parse the query cache of `{sql}`: {e}")
                 ))?;
                 Ok(Some(describe))
             }
@@ -150,6 +156,14 @@ impl DotSqlx {
             }
         }
     }
+
+    /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L153-L190>
+    fn cache_describe(&self, describe: sqlx_core::describe::Describe) -> Result<(), io::Error> {
+        let describe = ::serde_json::to_vec(&describe)
+            .map_err(|e| format!("failed to serialize the query cache of `{}`: {e}", describe.sql))?;
+        std::fs::write(Self::file_path_of(&describe.sql), describe)?;
+        Ok(())
+    }
 }
 
 pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
@@ -162,14 +176,13 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
     let input = syn::parse2::<self::input::QueryMacroInput>(input)?;
     
     let describe = match LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {
-        Some(dot_sqlx_dir) => {
-            dot_sqlx_dir.get_cached_describe(&input.sql)
-                .map_err(|e| syn::Error::new(ipnut.src_span, e))
-                .ok_or_else(|| syn::Error::new(
-                    input.src_span,
-                    "there is no cached data for this query, run `cargo sqlx prepare` to update the query cache"
-                ))
-        }
+        Some(dot_sqlx_dir) => dot_sqlx_dir
+            .get_cached_describe_of(&input.sql)
+            .map_err(|e| syn::Error::new(ipnut.src_span, e))
+            .ok_or_else(|| syn::Error::new(
+                input.src_span,
+                "there is no cached data for this query, run `cargo sqlx prepare` to update the query cache"
+            )),
         None => {
             static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
 
@@ -289,6 +302,10 @@ fn compare_expand(
             }
         }
     };
+
+    if let Some(dot_sqlx_dir) = LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {
+        dot_sqlx_dir.cache_describe(describe).map_err(|e| syn::Error::new(input.src_span, e))?;
+    }
 
     Ok(quote! {
         {
