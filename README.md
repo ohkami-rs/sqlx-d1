@@ -5,7 +5,7 @@
 
 <br>
 
-SQLx-D1 realizes "SQLx for Cloudflare D1"  _**withcompile-time SQL verification**_ in Rust Cloudflare development !
+SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification**_ in Rust Cloudflare development !
 
 ## Background
 
@@ -27,8 +27,9 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
 
 ## Unsupported features
 
-- Transaction ( let's wait for Cloudflare's side to support transation on D1 ! )
-- Connection pool ( `sqlx::Pool` internally requires Rust async runtime (tokio / asycn-std) and time implemetation on the WASM runtime which is not done on Cloudflare Workers )
+- Transaction
+    - Let's wait for Cloudflare's side to support transation on D1 !
+- Connection pool ( `sqlx::Pool` internally requires Rust async runtime (tokio / asycn-std) and time implemetation of WASM runtime which is not done on Cloudflare Workers )
     - alternatively, `&sqlx_d1::D1Connection` implements `Executor`, not only `&mut` one.
 
 ## TODO features
