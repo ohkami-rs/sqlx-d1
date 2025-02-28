@@ -1,41 +1,38 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "offline", derive(serde::Serialize, serde::Deserialize))]
 pub struct D1TypeInfo(D1Type);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "offline", derive(serde::Serialize, serde::Deserialize))]
 enum D1Type {
     Null,
     Real,
     Integer,
     Text,
     Blob,
-}
 
-impl std::fmt::Display for D1TypeInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-impl sqlx_core::type_info::TypeInfo for D1TypeInfo {
-    fn is_null(&self) -> bool {
-        matches!(self.0, D1Type::Null)
-    }
-    
-    fn name(&self) -> &str {
-        match self.0 {
-            D1Type::Null => "NULL",
-            D1Type::Text => "TEXT",
-            D1Type::Real => "REAL",
-            D1Type::Blob => "BLOB",
-            D1Type::Integer => "INTEGER"
-        }
-    }
+    /// special variant for bool to tell `TypeChecking` impl
+    /// "don't choose by equality with Integer but choose as compatibility with Integer as `sqlx_core::types::Type`".
+    /// 
+    /// see `type_checking!` in `types` module and its expansion / reference.
+    Boolean,
 }
 
 impl D1TypeInfo {
-    pub(crate) fn unknown() -> &'static Self {
-        /* most least-bad choice */
-        &Self(D1Type::Blob)
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn from_sqlite(sqlite_type_info: sqlx_sqlite::SqliteTypeInfo) -> Self {
+        use sqlx_core::type_info::TypeInfo as _;
+
+        /* ref: <https://github.com/launchbadge/sqlx/blob/25efb2f7f410e0f0aa3fee1d8467429066dbcdf8/sqlx-sqlite/src/type_info.rs#L56-L71> */
+        match sqlite_type_info.name() {
+            "NULL" => Self::null(),
+            "TEXT" => Self::text(),
+            "REAL" => Self::real(),
+            "BLOB" => Self::blob(),
+            "INTEGER" | "NUMERIC" => Self::integer(),
+            "BOOLEAN" => Self(D1Type::Boolean),
+            _ => *Self::unknown()
+        }
     }
 
     pub const fn null() -> Self {
@@ -52,6 +49,14 @@ impl D1TypeInfo {
     }
     pub const fn blob() -> Self {
         Self(D1Type::Blob)
+    }
+
+    pub(crate) const fn boolean() -> Self {
+        Self(D1Type::Boolean)
+    }
+    pub(crate) const fn unknown() -> &'static Self {
+        /* most least-bad choice */
+        &Self(D1Type::Blob)
     }
 
     pub(crate) fn from_raw(raw: &worker::wasm_bindgen::JsValue) -> Self {
@@ -73,19 +78,25 @@ impl D1TypeInfo {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-impl D1TypeInfo {
-    pub(crate) fn from_sqlite(sqlite_type_info: sqlx_sqlite::SqliteTypeInfo) -> Self {
-        use sqlx_core::type_info::TypeInfo as _;
+impl std::fmt::Display for D1TypeInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
 
-        /* ref: <https://github.com/launchbadge/sqlx/blob/25efb2f7f410e0f0aa3fee1d8467429066dbcdf8/sqlx-sqlite/src/type_info.rs#L56-L71> */
-        match sqlite_type_info.name() {
-            "NULL" => Self::null(),
-            "TEXT" => Self::text(),
-            "REAL" => Self::real(),
-            "BLOB" => Self::blob(),
-            "INTEGER" | "NUMERIC" | "BOOLEAN" => Self::integer(),
-            _ => *Self::unknown()
+impl sqlx_core::type_info::TypeInfo for D1TypeInfo {
+    fn is_null(&self) -> bool {
+        matches!(self.0, D1Type::Null)
+    }
+    
+    fn name(&self) -> &str {
+        match self.0 {
+            D1Type::Null    => "NULL",
+            D1Type::Text    => "TEXT",
+            D1Type::Real    => "REAL",
+            D1Type::Blob    => "BLOB",
+            D1Type::Integer => "INTEGER",
+            D1Type::Boolean => unreachable!(),
         }
     }
 }

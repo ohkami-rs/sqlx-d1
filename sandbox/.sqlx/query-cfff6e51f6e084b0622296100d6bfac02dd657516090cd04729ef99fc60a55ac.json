@@ -1,0 +1,1 @@
+{"columns":[{"ordinal":0,"name":"name","type_info":"Text"},{"ordinal":1,"name":"age","type_info":"Integer"}],"parameters":{"Right":1},"nullable":[false,true]}

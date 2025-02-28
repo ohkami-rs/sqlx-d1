@@ -50,9 +50,9 @@ static LOCATION: LazyLock<Location> = LazyLock::new(|| {
     }
 });
 impl Location {
-    fn miniflare_sqlite_file(&self) -> Result<PathBuf, io::Error> {
-        fn miniflare_d1_dir_in_a_package_root(package_root: impl AsRef<Path>) -> PathBuf {
-            package_root.as_ref()
+    fn miniflare_sqlite_file(&self) -> Result<Option<PathBuf>, io::Error> {
+        fn miniflare_d1_dir_path_in_parent(parent_path: impl AsRef<Path>) -> PathBuf {
+            parent_path.as_ref()
                 .join(".wrangler")
                 .join("state")
                 .join("v3")
@@ -60,21 +60,17 @@ impl Location {
                 .join("miniflare-D1DatabaseObject")
         }
         
-        let miniflare_d1_dir = {
-            ({
-                let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.manifest_dir);
-                std::fs::exists(&candidate)?.then_some(candidate)
-            })
-            .or_else(|| {
-                let candidate = miniflare_d1_dir_in_a_package_root(&*LOCATION.workspace_root);
-                std::fs::exists(&candidate).ok()?.then_some(candidate)
-            })
-            .ok_or_else(|| io::Error::new(
-                io::ErrorKind::NotFound,
-                "Miniflare's D1 emulator is not found. Make sure to run \
-                `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
-                `wrangler d1 migrations apply <BINDING> --local`."
-            ))?
+        let miniflare_d1_dir = 'search: {
+            for parent_candidate in [
+                &*LOCATION.manifest_dir,
+                &*LOCATION.workspace_root,
+            ] {
+                let candidate = miniflare_d1_dir_path_in_parent(parent_candidate);
+                if std::fs::exists(&candidate)? && candidate.is_dir() {
+                    break 'search candidate;
+                }
+            }
+            return Ok(None);
         };
     
         let mut sqlite_files = std::fs::read_dir(miniflare_d1_dir)?
@@ -83,19 +79,82 @@ impl Location {
             .collect::<Vec<_>>();
     
         match sqlite_files.len() {
-            0 => Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "No Miniflare's D1 emulator is found! Make sure to run \
-                `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
-                `wrangler d1 migrations apply <BINDING> --local`."
-            )),
-            2.. => Err(io::Error::new(
+            0 => Ok(None),
+            1 => Ok(sqlite_files.pop()),
+            _ => Err(io::Error::new(
                 io::ErrorKind::Other,
-                "Multiple Miniflare's D1 emulators are found! \
+                "Multiple miniflare's D1 emulators are found! \
                 Sorry, sqlx_d1 only supports single D1 binding now."
             )),
-            1 => Ok(sqlite_files.pop().unwrap())
         }
+    }
+
+    fn dot_sqlx_dir(&self) -> Result<Option<DotSqlx>, io::Error> {
+        for parent_candidate in [
+            &*LOCATION.manifest_dir,
+            &*LOCATION.workspace_root,
+        ] {
+            if let Some(it) = DotSqlx::find_in_parent(parent_candidate)? {
+                return Ok(Some(it))
+            }
+        }
+        Ok(None)
+    }
+}
+
+struct DotSqlx(PathBuf);
+impl DotSqlx {
+    fn find_in_parent(parent_dir: &Path) -> Result<Option<Self>, io::Error> {
+        let candidate = parent_dir.join(".sqlx");
+        if std::fs::exists(&candidate)? && candidate.is_dir() {
+            Ok(Some(DotSqlx(candidate)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn file_path_of(&self, sql: &str) -> PathBuf {
+        /* ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L193-L198> */
+        let hash = {
+            use sha2::{Digest, Sha256};
+            ::hex::encode(Sha256::digest(sql.as_bytes()))
+        };
+
+        /* ref:
+            <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/mod.rs#L165>
+            <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L156>
+        */
+        let file_name = format!("query-{hash}.json");
+
+        self.0.join(file_name)
+    }
+
+    fn get_cached_describe_of(&self, sql: &str) -> Result<Option<sqlx_core::describe::Describe<sqlx_d1_core::D1>>, io::Error> {
+        match std::fs::read(self.file_path_of(sql)) {
+            Ok(bytes) => {
+                let describe = ::serde_json::from_slice(&bytes).map_err(|e| io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("failed to parse the query cache of `{sql}`: {e}")
+                ))?;
+                Ok(Some(describe))
+            }
+            Err(e) => if matches!(e.kind(), io::ErrorKind::NotFound) {
+                Ok(None)
+            } else {
+                Err(e)
+            }
+        }
+    }
+
+    /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L153-L190>
+    fn cache_describe(&self, sql: &str, describe: sqlx_core::describe::Describe<sqlx_d1_core::D1>) -> Result<(), io::Error> {
+        let describe = ::serde_json::to_vec(&describe)
+            .map_err(|e| io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("failed to serialize the query cache of `{sql}`: {e}")
+            ))?;
+        std::fs::write(self.file_path_of(sql), describe)?;
+        Ok(())
     }
 }
 
@@ -107,28 +166,47 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
     use std::sync::Mutex;
     
     let input = syn::parse2::<self::input::QueryMacroInput>(input)?;
-    
-    let describe = {
-        static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
 
-        let mut conn = CONNECTION.get_or_init(|| {
-            let sqlite_file_path = LOCATION
-                .miniflare_sqlite_file()
-                .map_err(|e| syn::Error::new(Span::call_site(), e))?;
-                
+    let describe = match LOCATION.miniflare_sqlite_file().map_err(|e| syn::Error::new(Span::call_site(), e))? {
+        Some(sqlite_file_path) => {
+            static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
+
+            let mut conn = CONNECTION.get_or_init(|| {
+                futures_lite::future::block_on(async {
+                    let conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
+                        .await
+                        .map_err(|e| syn::Error::new(Span::call_site(), e))?;
+                    Ok(Mutex::new(conn))
+                })
+            }).as_ref().map_err(Clone::clone)?.lock().unwrap();
+
             futures_lite::future::block_on(async {
-                let conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
-                    .await
-                    .map_err(|e| syn::Error::new(Span::call_site(), e))?;
-                Ok(Mutex::new(conn))
-            })
-        }).as_ref().map_err(Clone::clone)?.lock().unwrap();
+                conn.describe(&input.sql).await
+            }).map_err(|e| syn::Error::new(input.src_span, e))?
+        }
 
-        futures_lite::future::block_on(async {
-            conn.describe(&input.sql).await
-        }).map_err(|e| syn::Error::new(input.src_span, e))?
+        None => match LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {
+            Some(dot_sqlx_dir) => dot_sqlx_dir
+                .get_cached_describe_of(&input.sql)
+                .map_err(|e| syn::Error::new(input.src_span, e))?
+                .ok_or_else(|| syn::Error::new(
+                    input.src_span,
+                    "there is no cached data for this query, run `cargo sqlx prepare` to update the query cache"
+                ))?,
+
+            None => return Err(syn::Error::new(
+                input.src_span,
+                "Neither miniflare D1 emulator nor .sqlx directory is found ! \n\
+                For setting up miniflare, run \
+                `wrangler d1 migrations create <BINDING> <MIGRATION>` and \
+                `wrangler d1 migrations apply <BINDING> --local`.\n\
+                For setting up .sqlx directory for offline mode, \
+                run `cargo sqlx prepare` where `cargo sqlx` is installed and \
+                miniflare D1 emulator is accessable (offen your local PC)."
+            ))
+        }
     };
-
+    
     compare_expand(input, describe)
 }
 
@@ -223,6 +301,10 @@ fn compare_expand(
         }
     };
 
+    if let Some(dot_sqlx_dir) = LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {
+        dot_sqlx_dir.cache_describe(&input.sql, describe).map_err(|e| syn::Error::new(input.src_span, e))?;
+    }
+
     Ok(quote! {
         {
             #[allow(clippy::all)]
@@ -236,72 +318,3 @@ fn compare_expand(
         }
     })
 }
-
-/// ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/database/mod.rs>
-
-use sqlx_core::{types::Type, database::Database};
-use sqlx_d1_core::D1;
-
-macro_rules! input_ty {
-    ($ty:ty, $input:ty) => {
-        stringify!($input)
-    };
-    ($ty:ty) => {
-        stringify!($ty)
-    };
-}
-
-macro_rules! type_names {
-    ( $( $(#[$meta:meta])? $T:ty $(| $input:ty)? ),* $(,)? ) => {
-        fn param_type_name_for_info(
-            info: &<D1 as Database>::TypeInfo,
-        ) -> Option<&'static str> {
-            $(
-                $(#[$meta])?
-                if
-                    <$T as Type<D1>>::type_info() == *info ||
-                    <$T as Type<D1>>::compatible(info)
-                {
-                    return Some(input_ty!($T $(, $input)?));
-                }
-            )*
-            None
-        }
-
-        fn return_type_name_for_info(
-            info: &<D1 as Database>::TypeInfo,
-        ) -> Option<&'static str> {
-            $(
-                $(#[$meta])?
-                if
-                    <$T as Type<D1>>::type_info() == *info ||
-                    <$T as Type<D1>>::compatible(info)
-                {
-                    return Some(stringify!($T));
-                }
-            )*
-            None
-        }
-    };
-}
-
-type_names! {
-    bool,
-    i8,
-    i16,
-    i32,
-    i64,
-    isize,
-    u8,
-    u16,
-    u32,
-    u64,
-    usize,
-    String | &str,
-    Vec<u8> | &[u8],
-
-    #[cfg(feature = "uuid")]
-    sqlx_core::types::Uuid,
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

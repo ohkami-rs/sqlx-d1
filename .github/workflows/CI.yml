@@ -29,13 +29,21 @@ jobs:
           targets:   x86_64-unknown-linux-gnu, wasm32-unknown-unknown
 
       - name: Check buildability
-        run:  |
-          cargo build -p sqlx-d1
-          cargo build -p sqlx-d1 --features json
-          cargo build -p sqlx-d1 --features uuid
-          cargo build -p sqlx-d1 --features macros
-          cargo build -p sqlx-d1 --features json,uuid,macros
+        working-directory: ./sqlx-d1
+        run: |
+          cargo build
+          cargo build --features json
+          cargo build --features uuid
+          cargo build --features macros
+          cargo build --features json,uuid,macros
 
       - name: Check sandbox
-        run:  |
-          echo 'Please wait for offline mode...'
+        working-directory: ./sandbox
+        run: |
+          mv ./wrangler.toml.sample ./wrangler.toml
+          mv ./.sqlx ./tmp
+          cargo build 2>&1 | tee tmp.log \
+            && (echo 'unexpectedly build scceeded'; exit 1) \
+            || (grep 'Neither miniflare D1 emulator nor .sqlx directory is found !' tmp.log && echo 'expected behavior' || exit 1)
+          mv ./tmp ./.sqlx
+          cargo build

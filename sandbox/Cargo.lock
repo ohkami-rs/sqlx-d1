@@ -1050,12 +1050,10 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "serde",
- "serde_json",
  "smallvec",
  "thiserror 2.0.11",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -1076,7 +1074,6 @@ dependencies = [
  "serde",
  "sqlx-core",
  "sqlx-sqlite",
- "uuid",
  "worker",
  "worker-sys",
 ]
@@ -1087,10 +1084,12 @@ version = "0.1.0"
 dependencies = [
  "futures-lite",
  "heck",
+ "hex",
  "proc-macro2",
  "quote",
  "serde",
  "serde_json",
+ "sha2",
  "sqlx-core",
  "sqlx-d1-core",
  "sqlx-macros-core",
@@ -1349,12 +1348,6 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
-
-[[package]]
-name = "uuid"
-version = "1.15.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0f540e3240398cce6128b64ba83fdbdd86129c16a3aa1a3a252efd66eb3d587"
 
 [[package]]
 name = "vcpkg"

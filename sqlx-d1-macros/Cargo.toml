@@ -17,6 +17,8 @@ proc-macro = true
 
 [features]
 uuid = []
+derive = ["dep:heck"]
+query  = ["dep:sha2", "dep:hex", "dep:futures-lite", "sqlx-d1-core/offline"]
 
 [dependencies]
 sqlx-d1-core     = { path = "../sqlx-d1-core", version = "=0.1.0" }
@@ -25,7 +27,9 @@ sqlx-macros-core = { version = "=0.8.3", features = ["macros"]}
 syn              = { version = "2.0", features = ["full"] }
 proc-macro2      = { version = "1.0" }
 quote            = { version = "1.0" }
-heck             = { version = "0.5" }
 serde            = { version = "1.0", features = ["derive"] }
 serde_json       = { version = "1.0" }
-futures-lite     = { version = "2.6", features = ["std"], default-features = false }
+heck             = { optional = true, version = "0.5" }
+sha2             = { optional = true, version = "0.10" }
+hex              = { optional = true, version = "0.4" }
+futures-lite     = { optional = true, version = "2.6", features = ["std"], default-features = false }
