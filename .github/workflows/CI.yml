@@ -55,4 +55,6 @@ jobs:
             || (grep 'Neither miniflare D1 emulator nor .sqlx directory is found !' tmp.log && echo '---> expected behavior' || exit 1)
           mv ./tmp ./.sqlx
           cargo build
-          cargo build --features DEBUG  # check `readme_sample`
+          echo '---> build suceeded with .sqlx directory as expected'
+          cargo build --features DEBUG  # checking `readme_sample`
+          echo '---> `readme_sample` is sucessfully built'
