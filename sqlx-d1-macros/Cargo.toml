@@ -24,7 +24,7 @@ derive = ["dep:heck"]
 query  = ["dep:sha2", "dep:hex", "dep:futures-lite", "sqlx-d1-core/offline"]
 
 [dependencies]
-sqlx-d1-core     = { path = "../sqlx-d1-core", version = "=0.1.2" }
+sqlx-d1-core     = { path = "../sqlx-d1-core", version = "=0.1.3" }
 sqlx-core        = { version = "=0.8.3" }
 sqlx-macros-core = { version = "=0.8.3", features = ["macros"]}
 syn              = { version = "2.0", features = ["full"] }
