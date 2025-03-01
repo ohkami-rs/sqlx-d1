@@ -50,6 +50,7 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
 [dependencies]
 sqlx_d1 = { version = "0.1", features = ["macros"] }
 worker = { version = "0.5", features = ["d1"] }
+serde = { version = "1.0", features = ["derive"] }
 ```
 ```toml
 # wrangler.toml
@@ -64,19 +65,35 @@ database_id = "..."
 
 #[worker::event(fetch)]
 async fn main(
-    req: worker::Request,
+    mut req: worker::Request,
     env: worker::Env,
-    ctx: worker::Context,
+    _ctx: worker::Context,
 ) -> worker::Result<worker::Response> {
     let d1 = env.d1("DB")?;
     let conn = sqlx_d1::D1Connection::new(d1);
 
-    sqlx::query!("INSERT INTO users (name, age) VALUES (?, ?)", "dog", 42)
-        .execute(&conn)
-        .await
-        .map_err(|e| worker::Error::Rust(e.to_string()))?;
+    #[derive(serde::Deserialize)]
+    struct CreateUser {
+        name: String,
+        age: Option<u8>,
+    }
 
-    worker::Response::ok("Hello, sqlx_d1 !")
+    let req = req.json::<CreateUser>().await?;
+
+    let id = sqlx_d1::query!(
+        "
+        INSERT INTO users (name, age) VALUES (?, ?)
+        RETURNING id
+        ",
+            req.name,
+            req.age
+        )
+        .fetch_one(&conn)
+        .await
+        .map_err(|e| worker::Error::RustError(e.to_string()))?
+        .id;
+
+    worker::Response::ok(format!("Your id is {id}!"))
 }
 ```
 

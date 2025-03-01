@@ -14,6 +14,7 @@ sqlx-d1 = { path = "../sqlx-d1", features = ["macros"] }
 console_error_panic_hook = "0.1"
 thiserror = "2.0"
 worker = { version = "0.5" }
+serde = { optional = true, version = "1.0", features = ["derive"] }
 
 [dependencies.ohkami]
 git = "https://github.com/ohkami-rs/ohkami"
@@ -21,4 +22,4 @@ branch = "v0.24"
 features = ["rt_worker"]
 
 [features]
-DEBUG = ["sqlx-d1/DEBUG"]
+DEBUG = ["sqlx-d1/DEBUG", "dep:serde"]

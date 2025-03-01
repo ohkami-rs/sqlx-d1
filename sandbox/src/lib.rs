@@ -1,3 +1,6 @@
+#[cfg(feature = "DEBUG")]
+pub mod readme_sample;
+
 use ohkami::prelude::*;
 use ohkami::typed::status;
 use sqlx_d1::D1Connection;
