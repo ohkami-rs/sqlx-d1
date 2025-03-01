@@ -42,18 +42,6 @@ SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and
     - maybe added if requested
     - workaround if needed: add `sqlx` to dependencies and use its ones
 
-## Note
-
-So, make sure to use `sqlx_d1` where _**target is set to `wasm32-unknown-unknown`**_.
-In non-`wasm32-unknown-unknown` environment, for example, `D1Connection` doesn't provide `new` or `impl Executor for &_`.
-
-Typically, place follwing `.cargo/config.toml` at project/workspace root :
-
-```toml
-[build]
-target = "wasm32-unknown-unknown"
-```
-
 ## Example
 
 ```toml

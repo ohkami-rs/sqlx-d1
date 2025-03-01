@@ -36,7 +36,7 @@ jobs:
       - name: Check buildability
         working-directory: ./sqlx-d1
         run: |
-          TARGET=$(test '${{ matrix.target }}' && echo '${{ matrix.target }}' || (rustc -vV | grep 'host' | sed 's/host: //'))
+          TARGET=$(test '${{ matrix.target }}' && echo '${{ matrix.target }}' || (rustc --print host-tuple))
           echo "---> testing on target '$TARGET'"
           cargo build --target $TARGET
           cargo build --target $TARGET --features json
@@ -58,3 +58,6 @@ jobs:
           echo '---> build suceeded with .sqlx directory as expected'
           cargo build --features DEBUG  # checking `readme_sample`
           echo '---> `readme_sample` is sucessfully built'
+          cargo build --target (rustc --print host-tuple) \
+            && (echo '---> compilation itself suceeds for native target')
+            || exit 1
