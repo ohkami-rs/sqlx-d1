@@ -7,6 +7,12 @@
 
 SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification**_ in Rust Cloudflare development !
 
+<div align="right">
+    <a href="https://github.com/ohkami-rs/sqlx-d1/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/crates/l/sqlx-d1.svg" /></a>
+    <a href="https://github.com/ohkami-rs/sqlx-d1/actions"><img alt="build check status" src="https://github.com/ohkami-rs/sqlx-d1/actions/workflows/CI.yml/badge.svg"/></a>
+    <a href="https://crates.io/crates/sqlx-d1"><img alt="crates.io" src="https://img.shields.io/crates/v/sqlx-d1" /></a>
+</div>
+
 ## Background
 
 *Miniflare's local D1 emulator is, essentially, just an `.sqlite` file.*
