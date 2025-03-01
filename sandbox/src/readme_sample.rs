@@ -1,4 +1,4 @@
-async fn _main(
+pub async fn main(
     mut req: worker::Request,
     env: worker::Env,
     _ctx: worker::Context,

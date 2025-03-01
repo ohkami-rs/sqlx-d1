@@ -1,5 +1,5 @@
 #[cfg(feature = "DEBUG")]
-mod readme_sample;
+pub mod readme_sample;
 
 use ohkami::prelude::*;
 use ohkami::typed::status;
