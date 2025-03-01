@@ -12,6 +12,9 @@ keywords      = { workspace = true }
 categories    = { workspace = true }
 license       = { workspace = true }
 
+[package.metadata.docs.rs]
+features = ["json", "uuid", "chrono", "macros"]
+
 [dependencies]
 sqlx-d1-core   = { path = "../sqlx-d1-core",   version = "=0.1.0" }
 sqlx-d1-macros = { path = "../sqlx-d1-macros", version = "=0.1.0", optional = true }

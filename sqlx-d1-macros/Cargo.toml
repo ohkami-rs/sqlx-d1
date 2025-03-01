@@ -12,6 +12,9 @@ keywords      = { workspace = true }
 categories    = { workspace = true }
 license       = { workspace = true }
 
+[package.metadata.docs.rs]
+features = ["derive", "query"]
+
 [lib]
 proc-macro = true
 

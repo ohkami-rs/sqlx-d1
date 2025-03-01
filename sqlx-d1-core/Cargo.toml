@@ -13,7 +13,7 @@ categories    = { workspace = true }
 license       = { workspace = true }
 
 [package.metadata.docs.rs]
-features = ["json", "uuid"]
+features = ["json", "uuid", "chrono", "offline"]
 
 [features]
 # time not implemented on this platform
