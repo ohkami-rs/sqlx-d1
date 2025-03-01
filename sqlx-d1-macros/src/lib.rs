@@ -1,3 +1,5 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 #[cfg(feature = "derive")]
 mod from_row;
 
