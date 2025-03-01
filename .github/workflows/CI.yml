@@ -58,6 +58,6 @@ jobs:
           echo '---> build suceeded with .sqlx directory as expected'
           cargo build --features DEBUG  # checking `readme_sample`
           echo '---> `readme_sample` is sucessfully built'
-          cargo build --target (rustc --print host-tuple) \
+          cargo build --target $(rustc --print host-tuple) \
             && echo '---> compilation itself suceeds for native target' \
             || exit 1
