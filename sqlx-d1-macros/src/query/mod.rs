@@ -178,10 +178,24 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
                         .map_err(|e| syn::Error::new(Span::call_site(), e))?;
                     Ok(Mutex::new(conn))
                 })
-            }).as_ref().map_err(Clone::clone)?.lock().unwrap();
+            }).as_ref().map_err(Clone::clone)?.lock().map_err(|_| syn::Error::new(
+                input.src_span,
+                "Bug or invalid use of `sqlx_d1`. Be sure to use `sqlx_d1` where the target is set to \
+                `wasm32-unknown-unknown` ! \n\
+                For this, typcally, place `.cargo/config.toml` of following content at the root of \
+                your project or workspace : \n\
+                \n\
+                [build]\n\
+                target = \"wasm32-unknown-unknown\"\n
+                \n\
+                If you think this of a bug, please let me know the situation in \
+                GitHub Issues (https://ohkami-rs/sqlx-d1/issues) !"
+            ))?;
 
             futures_lite::future::block_on(async {
-                conn.describe(&input.sql).await
+                let describe = (&mut *conn).describe(&input.sql).await;
+                drop(conn);
+                describe
             }).map_err(|e| syn::Error::new(input.src_span, e))?
         }
 
