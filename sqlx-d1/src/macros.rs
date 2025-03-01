@@ -14,7 +14,7 @@ macro_rules! query (
     ($query:expr) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source = $query)
     });
-    ($query:expr, $($args:expr),* $(,)?) => ({
+    ($query:expr, $($args:tt)*) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source = $query, args = [$($args)*])
     })
 );
@@ -28,7 +28,7 @@ macro_rules! query_unchecked (
     ($query:expr) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source = $query, checked = false)
     });
-    ($query:expr, $($args:expr),* $(,)?) => ({
+    ($query:expr, $($args:tt)*) => ({
         $crate::macros::sqlx_d1_macros::expand_query!(source = $query, args = [$($args)*], checked = false)
     })
 );

@@ -47,7 +47,7 @@ jobs:
 
       - name: Check sandbox
         working-directory: ./sandbox
-        run: | # sandbox has `.cargo/config.toml` that specifies `target = "wasm32-unknown-unknown"`
+        run: |  # sandbox has `.cargo/config.toml` that specifies `target = "wasm32-unknown-unknown"`
           mv ./wrangler.toml.sample ./wrangler.toml
           mv ./.sqlx ./tmp
           cargo build 2>&1 | tee tmp.log \
@@ -55,3 +55,4 @@ jobs:
             || (grep 'Neither miniflare D1 emulator nor .sqlx directory is found !' tmp.log && echo '---> expected behavior' || exit 1)
           mv ./tmp ./.sqlx
           cargo build
+          cargo build --features DEBUG  # check `readme_sample`
