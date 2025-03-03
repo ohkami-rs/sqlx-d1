@@ -22,7 +22,7 @@ This fact has been brought a lot of Rustaceans trying `sqlx` with `sqlite` featu
 - `sqlx-sqlite` contains a *native dependency* of SQLite driver.
 - actual D1 itself doesn't expose SQL interface.
 
-SQLx-D1 works around this by loading `sqlx-sqlite` **only in macro context** and just providing a conversion layer between D1 and SQLx **in library context**. 
+SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and just providing a conversion layer between D1 and SQLx **in library context**. 
 
 ## Features
 
@@ -68,6 +68,21 @@ serde = { version = "1.0", features = ["derive"] }
 binding = "DB"
 database_name = "..."
 database_id = "..."
+```
+```sh
+wrangler d1 migrations create DB 'schema'
+```
+```sql
+-- migrations/0001_schema.sql
+
+-- Migration number: 0001 	 2025-02-24T17:10:24.835Z
+
+CREATE TABLE users (
+    id   INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    age  INTEGER
+);
+
 ```
 ```rust
 // src/lib.rs
