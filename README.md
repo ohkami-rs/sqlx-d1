@@ -48,12 +48,6 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 ## Example
 
 ```toml
-# .cargo/config.toml
-
-[build]
-target = "wasm32-unknown-unknown"
-```
-```toml
 # Cargo.toml
 
 [dependencies]
