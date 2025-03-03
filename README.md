@@ -15,7 +15,7 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
 
 ## Background
 
-*Miniflare's local D1 emulator is, essentially, just an `.sqlite` file.*
+*Miniflare's local D1 emulator is, essentially, just a `.sqlite` file.*
 
 This fact has been brought a lot of Rustaceans trying `sqlx` with `sqlite` feature for D1, but it's impossible because:
 
@@ -75,14 +75,11 @@ wrangler d1 migrations create DB 'schema'
 ```sql
 -- migrations/0001_schema.sql
 
--- Migration number: 0001 	 2025-02-24T17:10:24.835Z
-
 CREATE TABLE users (
     id   INTEGER NOT NULL PRIMARY KEY,
     name TEXT NOT NULL,
     age  INTEGER
 );
-
 ```
 ```rust
 // src/lib.rs
