@@ -20,7 +20,7 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
 This fact has been brought a lot of Rustaceans trying `sqlx` with `sqlite` feature for D1, but it's impossible because:
 
 - `sqlx-sqlite` contains a *native dependency* of SQLite driver.
-- actual D1 itself doesn't expose SQL interface.
+- actual D1 itself doesn't expose raw database interface.
 
 SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and just providing a conversion layer between D1 and SQLx **in library context**. 
 
