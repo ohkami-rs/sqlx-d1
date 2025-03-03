@@ -31,7 +31,7 @@ jobs:
 
       - name: Test documentations
         working-directory: ./sqlx-d1
-        run: cargo test --doc --target wasm32-unknown-unknown --features DEBUG
+        run: cargo test --doc --features DEBUG
 
       - name: Check buildability
         working-directory: ./sqlx-d1
