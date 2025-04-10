@@ -21,6 +21,7 @@ features = ["json", "uuid", "chrono", "offline"]
 json    = ["sqlx-core/json"]
 uuid    = ["sqlx-core/uuid"]
 chrono  = ["sqlx-core/chrono"]
+decimal = ["dep:rust_decimal"]
 offline = ["sqlx-core/offline", "serde/derive"]
 DEBUG   = []
 
@@ -33,6 +34,7 @@ futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 serde        = { version = "1.0" }
 log          = { version = "0.4" }  # required for `sqlx_core::connection::ConnectOptions`
+rust_decimal = { version = "1", optional = true, default-features = false }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 sqlx-sqlite = { version = "=0.8.3", features = ["bundled"] }
