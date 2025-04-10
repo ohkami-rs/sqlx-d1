@@ -4,6 +4,20 @@ pub mod readme_sample;
 use ohkami::prelude::*;
 use ohkami::typed::status;
 use sqlx_d1::D1Connection;
+use uuid::fmt::Hyphenated as HyphenatedUuid;
+
+mod js {
+    //! `uuid::Uuid::new_v4()` is not available on Cloudflare Workers,
+    //! so we use JavaScript's `crypto.randomUUID` instead.
+
+    use worker::wasm_bindgen;
+
+    #[wasm_bindgen::prelude::wasm_bindgen]
+    extern "C" {
+        #[wasm_bindgen(js_namespace = crypto)]
+        pub fn randomUUID() -> String;
+    }
+}
 
 #[ohkami::bindings]
 struct Bindings {
@@ -13,11 +27,12 @@ struct Bindings {
 #[derive(Serialize, sqlx_d1::FromRow)]
 struct User {
     id: i64,
+    uuid: Option<HyphenatedUuid>,
     name: String,
     age: Option<i64>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct CreateUserRequest<'req> {
     name: &'req str,
     age: Option<u8>,
@@ -52,7 +67,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                 Context(c): Context<'_, D1Connection>,
             | -> Result<JSON<Vec<User>>, Error> {
                 let users = sqlx_d1::query_as!(User, "
-                    SELECT id, name, age FROM users
+                    SELECT id, uuid, name, age FROM users
                 ")
                     .fetch_all(c)
                     .await?;
@@ -63,13 +78,20 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                 Context(c): Context<'_, D1Connection>,
                 JSON(req): JSON<CreateUserRequest<'_>>,
             | -> Result<status::Created<JSON<User>>, Error> {
+                let uuid = HyphenatedUuid::from_uuid(
+                    uuid::Uuid::parse_str(
+                        &js::randomUUID()
+                    ).unwrap()
+                );
+
                 let created_id = sqlx_d1::query_scalar!("
-                    INSERT INTO users (name, age) VALUES (?, ?)
+                    INSERT INTO users (uuid, name, age) VALUES (?, ?, ?)
                     RETURNING id
-                ", req.name, req.age).fetch_one(c).await?;
+                ", uuid, req.name, req.age).fetch_one(c).await?;
 
                 Ok(status::Created(JSON(User {
                     id: created_id,
+                    uuid: Some(uuid.into()),
                     name: req.name.to_string(),
                     age: req.age.map(|a| a.try_into().ok()).flatten(),
                 })))
@@ -80,7 +102,7 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
                 Context(c): Context<'_, D1Connection>,
             | -> Result<JSON<User>, Error> {
                 let user_record = sqlx_d1::query!("
-                    SELECT name, age FROM users
+                    SELECT uuid, name, age FROM users
                     WHERE id = ?
                 ", id).fetch_optional(c).await?
                     .ok_or_else(|| Error::ResourceNotFound(format!(
@@ -89,6 +111,11 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
 
                 Ok(JSON(User {
                     id: id.into(),
+                    uuid: user_record.uuid.map(|uuid| {
+                        HyphenatedUuid::from_uuid(
+                            uuid::Uuid::parse_str(&uuid).unwrap()
+                        )
+                    }),
                     name: user_record.name,
                     age: user_record.age,
                 }))
