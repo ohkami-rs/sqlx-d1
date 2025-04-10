@@ -588,6 +588,8 @@ const _: (/* decimal */) = {
     use rust_decimal::Decimal;
     use std::str::FromStr;
 
+    impl<C: TypeChecker> Compatible<C> for Decimal where String: Compatible<C> {}
+
     impl Type<D1> for Decimal {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             // Store Decimal as TEXT
