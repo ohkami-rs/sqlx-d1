@@ -1,7 +1,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod error;
-mod type_info;
 mod value;
 mod column;
 mod row;
@@ -10,7 +9,8 @@ mod transaction;
 mod arguments;
 mod statement;
 mod query_result;
-mod types;
+mod type_info;
+pub mod types;
 
 type ResultFuture<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
 

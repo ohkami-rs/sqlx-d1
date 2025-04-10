@@ -6,6 +6,86 @@ use sqlx_core::decode::Decode;
 use sqlx_core::types::Type;
 use worker::{serde_wasm_bindgen, wasm_bindgen::JsValue};
 
+
+//////////////////////////////////////////////////////////////////////////////////
+/// compile-time compatibility check support for `sqlx::query_*!` macro's internal
+//////////////////////////////////////////////////////////////////////////////////
+
+#[doc(hidden)]
+pub trait Compatible<X: TypeChecker>: Sized {
+    fn then(self) -> Self {self}
+}
+impl<X: TypeChecker, C: Compatible<X>> Compatible<Option<X>> for Option<C> {}
+
+#[doc(hidden)]
+pub trait TypeChecker {
+    const TYPE_INFO: D1TypeInfo;
+}
+impl<X: TypeChecker> TypeChecker for Option<X> {
+    const TYPE_INFO: D1TypeInfo = X::TYPE_INFO;
+}
+const _: () = {
+    impl TypeChecker for bool {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::boolean();
+    }
+    impl TypeChecker for i64 {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::integer();
+    }
+    impl TypeChecker for f64 {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::real();
+    }
+    impl TypeChecker for String {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::text();
+    }
+    impl TypeChecker for Vec<u8> {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::blob();
+    }
+    #[cfg(feature = "chrono")]
+    impl TypeChecker for sqlx_core::types::chrono::NaiveDate {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::date();
+    }
+    #[cfg(feature = "chrono")]
+    impl TypeChecker for sqlx_core::types::chrono::NaiveTime {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::time();
+    }
+    #[cfg(feature = "chrono")]
+    impl TypeChecker for sqlx_core::types::chrono::NaiveDateTime {
+        const TYPE_INFO: D1TypeInfo = D1TypeInfo::datetime();
+    }
+};
+
+/* ref: <https://github.com/launchbadge/sqlx/blob/277dd36c7868acb10eae20f50418e273b71c8499/sqlx-sqlite/src/type_checking.rs> */
+sqlx_core::impl_type_checking! {
+    crate::D1 {
+        // BOOLEAN,
+        bool,
+        // INTEGER,
+        i64,
+        // REAL,
+        f64,
+        // TEXT,
+        String,
+        // BLOB,
+        Vec<u8>,
+        // DATE,
+        #[cfg(feature = "chrono")]
+        sqlx_core::types::chrono::NaiveDate,
+        // TIME,
+        #[cfg(feature = "chrono")]
+        sqlx_core::types::chrono::NaiveTime,
+        // DATETIME,
+        #[cfg(feature = "chrono")]
+        sqlx_core::types::chrono::NaiveDateTime,
+    },
+    ParamChecking::Weak,
+    feature-types: _info => None,
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+/// `Type`, `Encode`, `Decode` implementations for specific types
+///////////////////////////////////////////////////////////////////////////////////
+
 impl<'q, E: Encode<'q, D1>> Encode<'q, D1> for Option<E> {
     fn encode_by_ref(
         &self,
@@ -44,10 +124,12 @@ macro_rules! deserialize {
 }
 
 macro_rules! serde_wasm_bindgen {
-    ($T:ty as $d1_type:ident) => {
+    ($T:ty where $type_cheker:ty) => {
+        impl Compatible<$type_cheker> for $T {}
+
         impl Type<D1> for $T {
             fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
-                D1TypeInfo::$d1_type()
+                <$type_cheker as TypeChecker>::TYPE_INFO
             }
         }
 
@@ -69,23 +151,24 @@ impl Type<D1> for [u8] {
 impl<'q> Encode<'q, D1> for &'q [u8] {
     serialize!('q);
 }
-serde_wasm_bindgen!(Box<[u8]> as blob);
-serde_wasm_bindgen!(Vec<u8> as blob);
 
-serde_wasm_bindgen!(f32 as real);
-serde_wasm_bindgen!(f64 as real);
+serde_wasm_bindgen!(Vec<u8> where Vec<u8>);
+serde_wasm_bindgen!(Box<[u8]> where Vec<u8>);
 
-serde_wasm_bindgen!(i8 as integer);
-serde_wasm_bindgen!(i16 as integer);
-serde_wasm_bindgen!(i32 as integer);
-serde_wasm_bindgen!(i64 as integer);
-serde_wasm_bindgen!(isize as integer);
+serde_wasm_bindgen!(f32 where f64);
+serde_wasm_bindgen!(f64 where f64);
 
-serde_wasm_bindgen!(u8 as integer);
-serde_wasm_bindgen!(u16 as integer);
-serde_wasm_bindgen!(u32 as integer);
-serde_wasm_bindgen!(u64 as integer);
-serde_wasm_bindgen!(usize as integer);
+serde_wasm_bindgen!(i8 where i64);
+serde_wasm_bindgen!(i16 where i64);
+serde_wasm_bindgen!(i32 where i64);
+serde_wasm_bindgen!(i64 where i64);
+serde_wasm_bindgen!(isize where i64);
+
+serde_wasm_bindgen!(u8 where i64);
+serde_wasm_bindgen!(u16 where i64);
+serde_wasm_bindgen!(u32 where i64);
+serde_wasm_bindgen!(u64 where i64);
+serde_wasm_bindgen!(usize where i64);
 
 impl Type<D1> for str {
     fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
@@ -95,12 +178,15 @@ impl Type<D1> for str {
 impl<'q> Encode<'q, D1> for &'q str {
     serialize!('q);
 }
-serde_wasm_bindgen!(Box<str> as text);
-serde_wasm_bindgen!(String as text);
-serde_wasm_bindgen!(std::borrow::Cow<'_, str> as text);
+
+serde_wasm_bindgen!(Box<str> where String);
+serde_wasm_bindgen!(String where String);
+serde_wasm_bindgen!(std::borrow::Cow<'_, str> where String);
 
 /// specialized conversion: true <-> 1 / false <-> 0
 const _: (/* bool */) = {
+    impl Compatible<bool> for bool {}
+
     impl Type<D1> for bool {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             D1TypeInfo::boolean()
@@ -127,6 +213,11 @@ const _: (/* bool */) = {
 /// ref: <https://github.com/launchbadge/sqlx/blob/d4ae6ffd882ed2de1695c652888d809bc068554e/sqlx-sqlite/src/types/text.rs>
 const _: (/* generics text */) = {
     use sqlx_core::types::Text;
+
+    impl<C: TypeChecker, T> Compatible<C> for Text<T>
+    where
+        String: Compatible<C>,
+    {}
 
     impl<T> Type<D1> for Text<T> {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
@@ -162,6 +253,11 @@ const _: (/* generics text */) = {
 const _: (/* json */) = {
     use sqlx_core::types::Json;
 
+    impl<C: TypeChecker, T> Compatible<C> for Json<T>
+    where
+        String: Compatible<C>,
+    {}
+
     impl<T> Type<D1> for Json<T> {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             <String as Type<D1>>::type_info()
@@ -195,6 +291,10 @@ const _: (/* json */) = {
 const _: (/* uuid */) = {
     use sqlx_core::types::uuid::{Uuid, fmt::{Hyphenated, Simple}};
 
+    impl<C: TypeChecker> Compatible<C> for Uuid
+    where
+        Vec<u8>: Compatible<C>,
+    {}
     impl Type<D1> for Uuid {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             <Vec<u8> as Type<D1>>::type_info()
@@ -214,6 +314,10 @@ const _: (/* uuid */) = {
         }
     }
 
+    impl<C: TypeChecker> Compatible<C> for Hyphenated
+    where
+        String: Compatible<C>,
+    {}
     impl Type<D1> for Hyphenated {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             <String as Type<D1>>::type_info()
@@ -234,6 +338,10 @@ const _: (/* uuid */) = {
         }
     }
 
+    impl<C: TypeChecker> Compatible<C> for Simple
+    where
+        String: Compatible<C>,
+    {}
     impl Type<D1> for Simple {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             <String as Type<D1>>::type_info()
@@ -269,6 +377,10 @@ const _: (/* chrono */) = {
         Utc,
     };
 
+    impl<C: TypeChecker, Tz: TimeZone> Compatible<C> for DateTime<Tz>
+    where
+        NaiveDateTime: Compatible<C>,
+    {}
     impl<Tz: TimeZone> Type<D1> for DateTime<Tz> {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             <NaiveDateTime as Type<D1>>::type_info()
@@ -378,6 +490,10 @@ const _: (/* chrono */) = {
         }
     }
 
+    impl Compatible<NaiveDateTime> for NaiveDateTime {}
+    impl Compatible<String> for NaiveDateTime {}
+    impl Compatible<i64> for NaiveDateTime {}
+    impl Compatible<f64> for NaiveDateTime {}
     impl Type<D1> for NaiveDateTime {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             D1TypeInfo::datetime()
@@ -401,6 +517,8 @@ const _: (/* chrono */) = {
         }
     }
 
+    impl Compatible<NaiveDate> for NaiveDate {}
+    impl Compatible<String> for NaiveDate {}
     impl Type<D1> for NaiveDate {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             D1TypeInfo::date()
@@ -425,6 +543,8 @@ const _: (/* chrono */) = {
         }
     }
 
+    impl Compatible<NaiveTime> for NaiveTime {}
+    impl Compatible<String> for NaiveTime {}
     impl Type<D1> for NaiveTime {
         fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
             D1TypeInfo::time()
@@ -462,28 +582,3 @@ const _: (/* chrono */) = {
         }
     }
 };
-
-/* ref: <https://github.com/launchbadge/sqlx/blob/277dd36c7868acb10eae20f50418e273b71c8499/sqlx-sqlite/src/type_checking.rs> */
-sqlx_core::impl_type_checking! {
-    crate::D1 {
-        bool,
-        i64,
-        f64,
-        String,
-        Vec<u8>,
-
-        #[cfg(feature = "chrono")]
-        sqlx_core::types::chrono::NaiveDate,
-
-        #[cfg(feature = "chrono")]
-        sqlx_core::types::chrono::NaiveDateTime,
-
-        #[cfg(feature = "chrono")]
-        sqlx_core::types::chrono::DateTime<sqlx_core::types::chrono::Utc> | sqlx_core::types::chrono::DateTime<_>,
-
-        #[cfg(feature = "uuid")]
-        sqlx_core::types::Uuid,
-    },
-    ParamChecking::Weak,
-    feature-types: _info => None,
-}
