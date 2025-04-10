@@ -582,3 +582,37 @@ const _: (/* chrono */) = {
         }
     }
 };
+
+#[cfg(feature = "decimal")]
+const _: (/* decimal */) = {
+    use rust_decimal::Decimal;
+    use std::str::FromStr;
+
+    impl<C: TypeChecker> Compatible<C> for Decimal where String: Compatible<C> {}
+
+    impl Type<D1> for Decimal {
+        fn type_info() -> <D1 as sqlx_core::database::Database>::TypeInfo {
+            // Store Decimal as TEXT
+            <String as Type<D1>>::type_info()
+        }
+        fn compatible(ty: &<D1 as sqlx_core::database::Database>::TypeInfo) -> bool {
+            <String as Type<D1>>::compatible(ty)
+        }
+    }
+
+    impl<'q> Encode<'q, D1> for Decimal {
+        fn encode_by_ref(
+            &self,
+            buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
+        ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
+            <String as Encode<'q, D1>>::encode(self.to_string(), buf)
+        }
+    }
+
+    impl Decode<'_, D1> for Decimal {
+        fn decode(value: <D1 as sqlx_core::database::Database>::ValueRef<'_>) -> Result<Self, sqlx_core::error::BoxDynError> {
+            let s = <String as Decode<D1>>::decode(value)?;
+            Ok(Decimal::from_str(&s)?)
+        }
+    }
+};

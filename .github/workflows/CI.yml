@@ -43,7 +43,8 @@ jobs:
           cargo build --target $TARGET --features uuid
           cargo build --target $TARGET --features chrono
           cargo build --target $TARGET --features macros
-          cargo build --target $TARGET --features json,uuid,chrono,macros
+          cargo build --target $TARGET --features decimal
+          cargo build --target $TARGET --features json,uuid,chrono,macros,decimal
 
       - name: Check sandbox
         working-directory: ./sandbox
