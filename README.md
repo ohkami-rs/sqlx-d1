@@ -55,13 +55,16 @@ sqlx_d1 = { version = "0.1", features = ["macros"] }
 worker = { version = "0.5", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
+```sh
+wrangler d1 create <DATABASE_NAME> # prints <DATABASE_ID>
+```
 ```toml
 # wrangler.toml
 
-[[d1_database]]
+[[d1_databases]]
 binding = "DB"
-database_name = "..."
-database_id = "..."
+database_name = "<DATABASE_NAME>"
+database_id = "<DATABASE_ID>"
 ```
 ```sh
 wrangler d1 migrations create DB 'schema'
@@ -74,6 +77,9 @@ CREATE TABLE users (
     name TEXT NOT NULL,
     age  INTEGER
 );
+```
+```sh
+wrangler d1 migrations apply DB --local
 ```
 ```rust
 // src/lib.rs
