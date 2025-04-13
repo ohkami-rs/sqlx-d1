@@ -51,7 +51,7 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 # Cargo.toml
 
 [dependencies]
-sqlx_d1 = { version = "0.1", features = ["macros"] }
+sqlx-d1 = { version = "0.1", features = ["macros"] }
 worker = { version = "0.5", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
