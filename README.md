@@ -79,7 +79,7 @@ CREATE TABLE users (
 );
 ```
 ```sh
-wrangler d1 migrations apply DB
+wrangler d1 migrations apply DB --local
 ```
 ```rust
 // src/lib.rs
