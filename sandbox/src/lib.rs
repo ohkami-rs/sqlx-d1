@@ -60,8 +60,15 @@ async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
 
+    let d1_connection = sqlx_d1::D1ConnectOptions::new(DB)
+        .foreign_keys(true)
+        .connect()
+        .await
+        .expect("Failed to connect to D1");
+
     Ohkami::new((
-        Context::new(D1Connection::new(DB)),
+        Context::new(d1_connection),
+        
         "/"
             .GET(async |
                 Context(c): Context<'_, D1Connection>,

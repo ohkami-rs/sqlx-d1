@@ -7,6 +7,22 @@ use {
     worker::{wasm_bindgen::JsValue, wasm_bindgen_futures::JsFuture, js_sys},
 };
 
+#[cfg(not(target_arch = "wasm32"))]
+macro_rules! unreachable_native_impl_of_item_for_only_wasm32 {
+    ($item_for_only_wasm32:literal) => {
+        panic!(
+            "native `{}`: Invalid use of `sqlx_d1`. Be sure to use `sqlx_d1` where the target is set to \
+            `wasm32-unknown-unknown` ! \n\
+            For this, typcally, place `.cargo/config.toml` of following content at the root of \
+            your project or workspace : \n\
+            \n\
+            [build]\n\
+            target = \"wasm32-unknown-unknown\"\n",
+            $item_for_only_wasm32
+        )
+    };
+}
+
 /// ## Example
 /// 
 /// ```toml
@@ -73,22 +89,6 @@ const _: () = {
     /* SAFETY: used in single-threaded Workers */
     unsafe impl Send for D1Connection {}
     unsafe impl Sync for D1Connection {}
-
-    #[cfg(not(target_arch = "wasm32"))]
-    macro_rules! unreachable_native_impl_of_item_for_only_wasm32 {
-        ($item_for_only_wasm32:literal) => {
-            panic!(
-                "native `{}`: Invalid use of `sqlx_d1`. Be sure to use `sqlx_d1` where the target is set to \
-                `wasm32-unknown-unknown` ! \n\
-                For this, typcally, place `.cargo/config.toml` of following content at the root of \
-                your project or workspace : \n\
-                \n\
-                [build]\n\
-                target = \"wasm32-unknown-unknown\"\n",
-                $item_for_only_wasm32
-            )
-        };
-    }
 
     impl D1Connection {
         pub fn new(d1: worker::D1Database) -> Self {
@@ -445,11 +445,33 @@ const _: () = {
     ";
 
     impl D1ConnectOptions {
-        #[cfg(target_arch = "wasm32")]
-        pub fn new(d1: worker::D1Database) -> Self {
-            Self {
-                d1: unsafe {core::mem::transmute(d1)},
-                pragmas: TogglePragmas::new(),
+        pub fn new(
+            #[allow(unused)]
+            d1: worker::D1Database,
+        ) -> Self {
+            #[cfg(target_arch = "wasm32")] {
+                Self {
+                    d1: unsafe {core::mem::transmute(d1)},
+                    pragmas: TogglePragmas::new(),
+                }
+            }
+            #[cfg(not(target_arch = "wasm32"))] {
+                unreachable_native_impl_of_item_for_only_wasm32!("D1ConnectOptions::new");
+            }
+        }
+
+        pub async fn connect(self) -> Result<D1Connection, crate::error::D1Error> {
+            #[cfg(target_arch = "wasm32")] {
+                let Self { d1, pragmas } = self;
+                if let Some(pragmas) = pragmas.collect() {
+                    JsFuture::from(d1.exec(&pragmas.join("\n")).map_err(D1Error::from)?)
+                        .await
+                        .map_err(D1Error::from)?;
+                }
+                Ok(D1Connection { inner: d1 })
+            }
+            #[cfg(not(target_arch = "wasm32"))] {
+                unreachable_native_impl_of_item_for_only_wasm32!("D1ConnectOptions::connect");
             }
         }
     }
@@ -554,17 +576,8 @@ const _: () = {
         {
             #[cfg(target_arch = "wasm32")] {
                 Box::pin(worker::send::SendFuture::new(async move {
-                    let d1 = self.d1.clone();
-
-                    if let Some(pragmas) = self.pragmas.collect() {
-                        JsFuture::from(d1.exec(&pragmas.join("\n")).map_err(D1Error::from)?)
-                            .await
-                            .map_err(D1Error::from)?;
-                    }
-
-                    Ok(D1Connection {
-                        inner: d1
-                    })
+                    <Self>::connect(self.clone()).await
+                        .map_err(|e| sqlx_core::Error::Database(Box::new(e)))
                 }))
             }
 
