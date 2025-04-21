@@ -1078,7 +1078,7 @@ dependencies = [
 
 [[package]]
 name = "sqlx-d1"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "sqlx-d1-core",
  "sqlx-d1-macros",
@@ -1086,7 +1086,7 @@ dependencies = [
 
 [[package]]
 name = "sqlx-d1-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "futures-core",
  "futures-util",
@@ -1100,7 +1100,7 @@ dependencies = [
 
 [[package]]
 name = "sqlx-d1-macros"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "futures-lite",
  "heck",
