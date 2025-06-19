@@ -28,8 +28,8 @@ DEBUG   = []
 [dependencies]
 # core dependencies
 sqlx-core    = { version = "=0.8.3" }
-worker       = { version = "0.5", features = ["d1"] }
-worker-sys   = { version = "0.5", features = ["d1"] }
+worker       = { version = "0.6", features = ["d1"] }
+worker-sys   = { version = "0.6", features = ["d1"] }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 serde        = { version = "1.0" }
