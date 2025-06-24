@@ -3,8 +3,8 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"deploy": "export OHKAMI_WORKER_DEV='' && wrangler deploy",
-		"dev": "export OHKAMI_WORKER_DEV=1 && wrangler dev"
+		"deploy": "export WORKER_DEV='' && wrangler deploy",
+		"dev": "export WORKER_DEV=1 && wrangler dev"
 	},
 	"devDependencies": {
 		"wrangler": "^4.9.1"

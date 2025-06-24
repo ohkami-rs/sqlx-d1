@@ -1,9 +1,7 @@
 #[cfg(feature = "DEBUG")]
 pub mod readme_sample;
 
-use ohkami::prelude::*;
-use ohkami::typed::status;
-use sqlx_d1::D1Connection;
+use serde::{Deserialize, Serialize};
 use uuid::fmt::Hyphenated as HyphenatedUuid;
 
 mod js {
@@ -19,11 +17,6 @@ mod js {
     }
 }
 
-#[ohkami::bindings]
-struct Bindings {
-    DB: ohkami::bindings::D1,
-}
-
 #[derive(Serialize, sqlx_d1::FromRow)]
 struct User {
     id: i64,
@@ -33,99 +26,112 @@ struct User {
 }
 
 #[derive(Deserialize, Debug)]
-struct CreateUserRequest<'req> {
-    name: &'req str,
+struct CreateUserRequest {
+    name: String,
     age: Option<u8>,
 }
 
-#[derive(Debug, thiserror::Error)]
-enum Error {
-    #[error("Error from D1: {0}")]
-    D1(#[from] sqlx_d1::Error),
-    #[error("Error not found {0}")]
-    ResourceNotFound(String),
-}
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        worker::console_error!("{self}");
-        match self {
-            Self::D1(_) => Response::InternalServerError(),
-            Self::ResourceNotFound(_) => Response::NotFound(),
-        }
-    }
-}
+// #[derive(Debug, thiserror::Error)]
+// enum Error {
+//     #[error("Error from D1: {0}")]
+//     D1(#[from] sqlx_d1::Error),
+//     #[error("Error not found {0}")]
+//     ResourceNotFound(String),
+// }
+// impl IntoResponse for Error {
+//     fn into_response(self) -> Response {
+//         worker::console_error!("{self}");
+//         match self {
+//             Self::D1(_) => Response::InternalServerError(),
+//             Self::ResourceNotFound(_) => Response::NotFound(),
+//         }
+//     }
+// }
 
-#[ohkami::worker]
-async fn my_worker(Bindings { DB }: Bindings) -> Ohkami {
+#[worker::event(fetch)]
+async fn main(
+    req: worker::Request,
+    env: worker::Env,
+    _ctx: worker::Context,
+) -> worker::Result<worker::Response> {
     #[cfg(debug_assertions)]
     console_error_panic_hook::set_once();
 
-    let d1_connection = sqlx_d1::D1ConnectOptions::new(DB)
-        .foreign_keys(true)
-        .connect()
-        .await
-        .expect("Failed to connect to D1");
+    let d1 = env.d1("DB")?;
+    let conn = sqlx_d1::D1Connection::new(d1);
 
-    Ohkami::new((
-        Context::new(d1_connection),
-        
-        "/"
-            .GET(async |
-                Context(c): Context<'_, D1Connection>,
-            | -> Result<JSON<Vec<User>>, Error> {
+    worker::Router::new()
+        .get_async("/", |_req, _ctx| {
+            let conn = conn.clone();
+            async move {
                 let users = sqlx_d1::query_as!(User, "
                     SELECT id, uuid, name, age FROM users
                 ")
-                    .fetch_all(c)
-                    .await?;
+                    .fetch_all(&conn)
+                    .await
+                    .map_err(|e| worker::Error::RustError(e.to_string()))?;
 
-                Ok(JSON(users))
-            })
-            .POST(async |
-                Context(c): Context<'_, D1Connection>,
-                JSON(req): JSON<CreateUserRequest<'_>>,
-            | -> Result<status::Created<JSON<User>>, Error> {
+                worker::Response::from_json(&users)
+            }
+        })
+        .post_async("/", |mut req, _ctx| {
+            let conn = conn.clone();
+            async move {
+                let CreateUserRequest { name, age } = req.json().await?;
+
                 let uuid = HyphenatedUuid::from_uuid(
-                    uuid::Uuid::parse_str(
-                        &js::randomUUID()
-                    ).unwrap()
+                    uuid::Uuid::parse_str(&js::randomUUID()).unwrap()
                 );
 
                 let created_id = sqlx_d1::query_scalar!("
                     INSERT INTO users (uuid, name, age) VALUES (?, ?, ?)
                     RETURNING id
-                ", uuid, req.name, req.age).fetch_one(c).await?;
+                ", uuid, name, age)
+                    .fetch_one(&conn)
+                    .await
+                    .map_err(|e| worker::Error::RustError(e.to_string()))?;
 
-                Ok(status::Created(JSON(User {
+                worker::Response::from_json(&User {
                     id: created_id,
                     uuid: Some(uuid.into()),
-                    name: req.name.to_string(),
-                    age: req.age.map(|a| a.try_into().ok()).flatten(),
-                })))
-            }),
-        "/:id"
-            .GET(async |
-                id: u32,
-                Context(c): Context<'_, D1Connection>,
-            | -> Result<JSON<User>, Error> {
+                    name: name.to_string(),
+                    age: age.map(|a| a.into()),
+                }).map(|res| res.with_status(201))
+            }
+        })
+        .get_async("/:id", |_req, ctx| {
+            let conn = conn.clone();
+            async move {
+                let id: u32 = ctx.param("id")
+                    .ok_or_else(|| worker::Error::RustError("Missing id parameter".to_string()))?
+                    .parse()
+                    .map_err(|_| worker::Error::RustError("Invalid user ID".to_string()))?;
+
                 let user_record = sqlx_d1::query!("
                     SELECT uuid, name, age FROM users
                     WHERE id = ?
-                ", id).fetch_optional(c).await?
-                    .ok_or_else(|| Error::ResourceNotFound(format!(
-                        "User(id = {id})"
-                    )))?;
+                ", id)
+                    .fetch_optional(&conn)
+                    .await
+                    .map_err(|e| worker::Error::RustError(e.to_string()))?
+                    .ok_or_else(|| worker::Error::RustError(format!("User(id = {id}) not found")))?;
 
-                Ok(JSON(User {
+                let uuid = user_record.uuid.map(|uuid| {
+                    HyphenatedUuid::from_uuid(
+                        uuid::Uuid::parse_str(&uuid).unwrap()
+                    )
+                });
+
+                let user = User {
                     id: id.into(),
-                    uuid: user_record.uuid.map(|uuid| {
-                        HyphenatedUuid::from_uuid(
-                            uuid::Uuid::parse_str(&uuid).unwrap()
-                        )
-                    }),
+                    uuid,
                     name: user_record.name,
                     age: user_record.age,
-                }))
-            }),
-    ))
+                };
+
+                worker::Response::from_json(&user)
+            }
+        })
+        .run(req, env)
+        .await
 }
