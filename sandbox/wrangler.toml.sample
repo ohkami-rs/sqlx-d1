@@ -6,7 +6,7 @@ main = "build/worker/shim.mjs"
 compatibility_date = "2025-02-14"
 
 [build]
-command = "test $OHKAMI_WORKER_DEV && worker-build --dev --features DEBUG || worker-build"
+command = "test $WORKER_DEV && worker-build --dev --features DEBUG || worker-build"
 
 [[d1_databases]]
 binding = "DB"
