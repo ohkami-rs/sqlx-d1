@@ -13,6 +13,8 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
     <a href="https://crates.io/crates/sqlx-d1"><img alt="crates.io" src="https://img.shields.io/crates/v/sqlx-d1" /></a>
 </div>
 
+`worker` version: *0.6*
+
 ## Background
 
 *Miniflare's local D1 emulator is, essentially, just a `.sqlite` file.*
@@ -29,8 +31,8 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 - SQLx interface for Cloudflare D1
 - Batteries included, `sqlx` is not needed in dependencies
 - Compile-time SQL verification
-    - by `sqlx-sqlite` and miniflare's local D1 emulator
-    - by query caches in `.sqlx` directory ( offline mode )
+    - by miniflare's local D1 emulator ( internally using `sqlx-sqlite` )
+    - by query caches in `.sqlx` directory ( offline mode; `cargo sqlx prepare` )
 - No environment variable or `.env` file is needed
     - D1 emulator's location is fixed to `.wrangler/state/v3/d1/miniflare-D1DatabaseObject`
     - falling back to offline mode when it doesn't exist and `.sqlx` directory exists
@@ -51,7 +53,7 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 # Cargo.toml
 
 [dependencies]
-sqlx-d1 = { version = "0.1", features = ["macros"] }
+sqlx-d1 = { version = "0.2.0", features = ["macros"] }
 worker = { version = "0.6", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
@@ -118,6 +120,6 @@ async fn main(
 }
 ```
 
-## LICENSE
+## License
 
 SQLx-D1 is licensed under MIT LICENSE ( [LICENSE](https://github.com/ohkami-rs/sqlx-d1/blob/main/LICENSE) or https://opensource.org/licenses/MIT ) .
