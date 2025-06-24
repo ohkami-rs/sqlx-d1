@@ -13,6 +13,8 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
     <a href="https://crates.io/crates/sqlx-d1"><img alt="crates.io" src="https://img.shields.io/crates/v/sqlx-d1" /></a>
 </div>
 
+`worker` version: *0.6*
+
 ## Background
 
 *Miniflare's local D1 emulator is, essentially, just a `.sqlite` file.*
@@ -118,6 +120,6 @@ async fn main(
 }
 ```
 
-## LICENSE
+## License
 
 SQLx-D1 is licensed under MIT LICENSE ( [LICENSE](https://github.com/ohkami-rs/sqlx-d1/blob/main/LICENSE) or https://opensource.org/licenses/MIT ) .
