@@ -31,23 +31,6 @@ struct CreateUserRequest {
     age: Option<u8>,
 }
 
-// #[derive(Debug, thiserror::Error)]
-// enum Error {
-//     #[error("Error from D1: {0}")]
-//     D1(#[from] sqlx_d1::Error),
-//     #[error("Error not found {0}")]
-//     ResourceNotFound(String),
-// }
-// impl IntoResponse for Error {
-//     fn into_response(self) -> Response {
-//         worker::console_error!("{self}");
-//         match self {
-//             Self::D1(_) => Response::InternalServerError(),
-//             Self::ResourceNotFound(_) => Response::NotFound(),
-//         }
-//     }
-// }
-
 #[worker::event(fetch)]
 async fn main(
     req: worker::Request,
