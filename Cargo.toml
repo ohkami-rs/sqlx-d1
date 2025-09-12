@@ -4,7 +4,7 @@ members  = ["sqlx-d1", "sqlx-d1-core", "sqlx-d1-macros"]
 exclude  = ["sandbox"]
 
 [workspace.package]
-version    = "0.2.0"
+version    = "0.2.1"
 edition    = "2024"
 authors    = ["kanarus <kanarus786@gmail.com>"]
 homepage   = "https://crates.io/crates/sqlx-d1"
