@@ -1,16 +1,13 @@
 # This will be removed when sqlx-d1 has more than one maintainers
 
-name: auto-approve
+name: AutoApprove
+
 on:
   pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
+    types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
-  auto_approve:
+  approve:
     if: |
       github.event.pull_request.user.login == 'kanarus' &&
       !github.event.pull_request.draft
