@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, v*]
+    branches: ['main', 'v*']
 
 jobs:
   CI:
@@ -15,7 +15,7 @@ jobs:
         target: ['', 'wasm32-unknown-unknown']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup mold
         run:  |
@@ -24,10 +24,11 @@ jobs:
           echo 'linker    = "clang"'                                   >> $HOME/.cargo/config.toml
           echo 'rustflags = ["-C", "link-arg=-fuse-ld=/usr/bin/mold"]' >> $HOME/.cargo/config.toml
 
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.toolchain }}
-          targets:   wasm32-unknown-unknown
+      - name: Setup Rust
+        run: |
+          rustup update
+          rustup default ${{ matrix.toolchain }}
+          rustup target add wasm32-unknown-unknown
 
       - name: Test documentations
         working-directory: ./sqlx-d1
