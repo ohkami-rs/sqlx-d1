@@ -1,32 +1,32 @@
 [package]
-name          = "sqlx-d1"
+name = "sqlx-d1"
 documentation = "https://docs.rs/sqlx-d1"
-description   = "SQLx for Cloudflare D1"
-version       = { workspace = true }
-edition       = { workspace = true }
-authors       = { workspace = true }
-homepage      = { workspace = true }
-repository    = { workspace = true }
-readme        = { workspace = true }
-keywords      = { workspace = true }
-categories    = { workspace = true }
-license       = { workspace = true }
+description = "SQLx for Cloudflare D1"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+license = { workspace = true }
 
 [package.metadata.docs.rs]
 features = ["json", "uuid", "chrono", "decimal", "macros"]
 
 [dependencies]
-sqlx-d1-core   = { path = "../sqlx-d1-core",   version = "=0.2.1" }
+sqlx-d1-core = { path = "../sqlx-d1-core", version = "=0.2.1" }
 sqlx-d1-macros = { path = "../sqlx-d1-macros", version = "=0.2.1", optional = true }
 
 [features]
-json    = ["sqlx-d1-core/json"]
-uuid    = ["sqlx-d1-core/uuid"]
-chrono  = ["sqlx-d1-core/chrono"]
+json = ["sqlx-d1-core/json"]
+uuid = ["sqlx-d1-core/uuid"]
+chrono = ["sqlx-d1-core/chrono"]
 decimal = ["sqlx-d1-core/decimal"]
 
 macros = ["query", "derive"]
-query  = ["dep:sqlx-d1-macros", "sqlx-d1-macros/query"]
+query = ["dep:sqlx-d1-macros", "sqlx-d1-macros/query"]
 derive = ["dep:sqlx-d1-macros", "sqlx-d1-macros/derive"]
 
 ################################
@@ -41,5 +41,5 @@ DEBUG = ["sqlx-d1-core/DEBUG", "sqlx-d1-macros?/DEBUG"]
 ################################
 
 [dev-dependencies]
-worker = { version = "0.6", features = ["d1"] }
-serde  = { version = "1.0", features = ["derive"] }
+worker = { version = "0.7", features = ["d1"] }
+serde = { version = "1.0", features = ["derive"] }
