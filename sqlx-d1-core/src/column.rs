@@ -48,7 +48,7 @@ impl sqlx_core::column::ColumnIndex<crate::row::D1Row> for usize {
             .then_some(*self)
             .ok_or_else(|| sqlx_core::Error::ColumnIndexOutOfBounds {
                 index: *self,
-                len: row.columns().len()
+                len: row.columns().len(),
             })
     }
 }

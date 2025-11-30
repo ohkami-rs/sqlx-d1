@@ -14,7 +14,7 @@ pub enum D1Type {
 
     /// special variant for bool to tell `TypeChecking` impl
     /// "don't choose by equality with Integer but choose as compatibility with Integer as `sqlx_core::types::Type`".
-    /// 
+    ///
     /// see `type_checking!` in `types` module and its expansion / reference.
     Boolean,
 
@@ -39,7 +39,7 @@ impl D1TypeInfo {
             "DATE" => Self::date(),
             "TIME" => Self::time(),
             "DATETIME" => Self::datetime(),
-            _ => *Self::unknown()
+            _ => *Self::unknown(),
         }
     }
 
@@ -118,19 +118,15 @@ impl sqlx_core::type_info::TypeInfo for D1TypeInfo {
     fn is_null(&self) -> bool {
         matches!(self.0, D1Type::Null)
     }
-    
+
     fn name(&self) -> &str {
         match self.0 {
-            D1Type::Null    => "NULL",
-            D1Type::Text    => "TEXT",
-            D1Type::Real    => "REAL",
-            D1Type::Blob    => "BLOB",
+            D1Type::Null => "NULL",
+            D1Type::Text => "TEXT",
+            D1Type::Real => "REAL",
+            D1Type::Blob => "BLOB",
             D1Type::Integer => "INTEGER",
-            | D1Type::Boolean
-            | D1Type::Date
-            | D1Type::Time
-            | D1Type::Datetime
-            => unreachable!(),
+            D1Type::Boolean | D1Type::Date | D1Type::Time | D1Type::Datetime => unreachable!(),
         }
     }
 }

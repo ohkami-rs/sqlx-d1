@@ -6,7 +6,7 @@
 pub use sqlx_d1_macros;
 
 /// `sqlx::query!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query!](https://docs.rs/sqlx/latest/sqlx/macro.query.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -20,7 +20,7 @@ macro_rules! query (
 );
 
 /// `sqlx::query_unchecked!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_unchecked.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -34,7 +34,7 @@ macro_rules! query_unchecked (
 );
 
 /// `sqlx::query_file!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_file!](https://docs.rs/sqlx/latest/sqlx/macro.query_file.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -48,7 +48,7 @@ macro_rules! query_file (
 );
 
 /// `sqlx::query_file_unchecked!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_file_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_unchecked.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -62,7 +62,7 @@ macro_rules! query_file_unchecked (
 );
 
 /// `sqlx::query_as!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_as!](https://docs.rs/sqlx/latest/sqlx/macro.query_as.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -76,7 +76,7 @@ macro_rules! query_as (
 );
 
 /// `sqlx::query_file_as!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_file_as!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_as.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -90,7 +90,7 @@ macro_rules! query_file_as (
 );
 
 /// `sqlx::query_as_unchecked!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_as_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_as_unchecked.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -105,7 +105,7 @@ macro_rules! query_as_unchecked (
 );
 
 /// `sqlx::query_file_as_unchecked!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_file_as_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_as_unchecked.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -120,7 +120,7 @@ macro_rules! query_file_as_unchecked (
 );
 
 /// `sqlx::query_scalor!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_scalor!](https://docs.rs/sqlx/latest/sqlx/macro.query_scalor.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -134,7 +134,7 @@ macro_rules! query_scalar (
 );
 
 /// `sqlx::query_file_scalor!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_file_scalor!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_scalor.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -148,7 +148,7 @@ macro_rules! query_file_scalar (
 );
 
 /// `sqlx::query_scalor_unchecked!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_scalor_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_scalor_unchecked.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]
@@ -162,7 +162,7 @@ macro_rules! query_scalar_unchecked (
 );
 
 /// `sqlx::query_file_scalor_unchecked!` for Cloudflare D1.
-/// 
+///
 /// See [sqlx::query_file_scalor_unchecked!](https://docs.rs/sqlx/latest/sqlx/macro.query_file_scalor_unchecked.html) for details.
 #[macro_export]
 #[cfg_attr(docsrs, doc(cfg(feature = "query")))]

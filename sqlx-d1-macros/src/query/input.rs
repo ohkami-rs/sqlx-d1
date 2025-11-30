@@ -1,13 +1,13 @@
 //! ref: <https://github.com/launchbadge/sqlx/blob/1c7b3d0751cdca5a08fbfa7f24c985fc3774cf11/sqlx-macros-core/src/query/input.rs>
 
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::{format_ident, quote, quote_spanned};
 use std::fs;
 use std::path::{Path, PathBuf};
-use proc_macro2::{TokenStream, Ident, Span};
-use quote::{quote, quote_spanned, format_ident};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::{Expr, LitBool, LitStr, Token, ExprArray, Type};
+use syn::{Expr, ExprArray, LitBool, LitStr, Token, Type};
 
 /// Macro input shared by `query!()` and `query_file!()`
 pub struct QueryMacroInput {
@@ -30,7 +30,7 @@ enum QuerySrc {
 }
 
 pub enum RecordType {
-    Given(Type),
+    Given(Box<Type>),
     Scalar,
     Generated,
 }
@@ -128,10 +128,7 @@ impl QueryMacroInput {
         let arg_idents = (0..self.arg_exprs.len())
             .map(|i| format_ident!("arg{i}"))
             .collect::<Vec<_>>();
-        let arg_exprs = self.arg_exprs
-            .iter()
-            .cloned()
-            .map(strip_wildcard);
+        let arg_exprs = self.arg_exprs.iter().cloned().map(strip_wildcard);
 
         let arg_bindings = quote! {
             #(let #arg_idents = &(#arg_exprs);)*
@@ -139,7 +136,7 @@ impl QueryMacroInput {
 
         let args_check = match describe.parameters() {
             None | Some(sqlx_core::Either::Right(_)) => TokenStream::new(),
-            
+
             Some(sqlx_core::Either::Left(_)) if !self.checked => TokenStream::new(),
 
             Some(sqlx_core::Either::Left(params)) => params
@@ -151,7 +148,7 @@ impl QueryMacroInput {
                         return Ok(TokenStream::new());
                     }
 
-                    let param_type_name = <sqlx_d1_core::D1 as sqlx_core::type_checking::TypeChecking>::param_type_for_id(&param_type_info)
+                    let param_type_name = <sqlx_d1_core::D1 as sqlx_core::type_checking::TypeChecking>::param_type_for_id(param_type_info)
                         .ok_or_else(|| syn::Error::new(
                             param_expr.span(),
                             format!("unsupported type {param_type_info} for param #{}", i + 1)
@@ -254,9 +251,9 @@ fn resolve_path(path: impl AsRef<Path>, err_span: Span) -> syn::Result<PathBuf> 
     // requires `proc_macro::SourceFile::path()` to be stable
     // https://github.com/rust-lang/rust/issues/54725
     if path.is_relative()
-        && !path
+        && path
             .parent()
-            .map_or(false, |parent| !parent.as_os_str().is_empty())
+            .is_none_or(|parent| !parent.as_os_str().is_empty())
     {
         return Err(syn::Error::new(
             err_span,
@@ -271,13 +268,30 @@ fn strip_wildcard(expr: Expr) -> Expr {
     use syn::{ExprCast, ExprGroup};
 
     match expr {
-        Expr::Group(ExprGroup { attrs, group_token, expr }) =>
-            Expr::Group(ExprGroup { attrs, group_token, expr: Box::new(strip_wildcard(*expr)) }),
+        Expr::Group(ExprGroup {
+            attrs,
+            group_token,
+            expr,
+        }) => Expr::Group(ExprGroup {
+            attrs,
+            group_token,
+            expr: Box::new(strip_wildcard(*expr)),
+        }),
         // we want to retain casts if they semantically matter
-        Expr::Cast(ExprCast { attrs, expr, as_token, ty }) => match *ty {
+        Expr::Cast(ExprCast {
+            attrs,
+            expr,
+            as_token,
+            ty,
+        }) => match *ty {
             // cast to wildcard `_` will produce weird errors; we interpret it as taking the value as-is
             Type::Infer(_) => *expr,
-            _ => Expr::Cast(ExprCast { attrs, expr, as_token, ty }),
+            _ => Expr::Cast(ExprCast {
+                attrs,
+                expr,
+                as_token,
+                ty,
+            }),
         },
         _ => expr,
     }

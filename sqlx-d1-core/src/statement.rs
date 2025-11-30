@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use sqlx_core::impl_statement_query;
+use std::borrow::Cow;
 
 pub struct D1Statement<'q> {
     pub(crate) sql: Cow<'q, str>,
@@ -18,7 +18,11 @@ impl<'q> sqlx_core::statement::Statement<'q> for D1Statement<'q> {
         &self.sql
     }
 
-    fn parameters(&self) -> Option<sqlx_core::Either<&[<Self::Database as sqlx_core::database::Database>::TypeInfo], usize>> {
+    fn parameters(
+        &self,
+    ) -> Option<
+        sqlx_core::Either<&[<Self::Database as sqlx_core::database::Database>::TypeInfo], usize>,
+    > {
         None
     }
 

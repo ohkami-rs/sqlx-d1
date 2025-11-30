@@ -3,7 +3,7 @@ use sqlx_core::value::Value;
 
 pub struct D1Row {
     columns: Vec<D1Column>,
-    values:  Vec<D1Value>,
+    values: Vec<D1Value>,
 }
 
 impl sqlx_core::row::Row for D1Row {
@@ -13,7 +13,10 @@ impl sqlx_core::row::Row for D1Row {
         &self.columns
     }
 
-    fn try_get_raw<I>(&self, index: I) -> Result<<Self::Database as sqlx_core::database::Database>::ValueRef<'_>, sqlx_core::Error>
+    fn try_get_raw<I>(
+        &self,
+        index: I,
+    ) -> Result<<Self::Database as sqlx_core::database::Database>::ValueRef<'_>, sqlx_core::Error>
     where
         I: sqlx_core::column::ColumnIndex<Self>,
     {
@@ -25,10 +28,11 @@ impl sqlx_core::row::Row for D1Row {
 #[cfg(target_arch = "wasm32")]
 impl D1Row {
     pub(crate) fn from_raw(raw: worker::wasm_bindgen::JsValue) -> Result<Self, sqlx_core::Error> {
+        use worker::js_sys::{Array, Object};
         use worker::wasm_bindgen::JsCast;
-        use worker::js_sys::{Object, Array};
 
-        #[cfg(feature = "DEBUG")] {
+        #[cfg(feature = "DEBUG")]
+        {
             worker::console_debug!("[D1Row::from_raw] raw = `{raw:?}`");
         }
 
@@ -44,12 +48,11 @@ impl D1Row {
                 name: key.as_string().unwrap().into(),
                 type_info: crate::type_info::D1TypeInfo::from_raw(&value),
             });
-            values.push(
-                value.into()
-            );
+            values.push(value.into());
         }
 
-        #[cfg(feature = "DEBUG")] {
+        #[cfg(feature = "DEBUG")]
+        {
             worker::console_debug!("[D1Row::from_raw] columns = `{columns:?}`");
             worker::console_debug!("[D1Row::from_raw] values = `{values:?}`");
         }

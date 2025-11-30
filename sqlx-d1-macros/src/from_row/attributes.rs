@@ -45,7 +45,9 @@ pub enum RenameAll {
 impl RenameAll {
     /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/derives/mod.rs#L27-L37>
     pub(super) fn apply(self, s: &str) -> String {
-        use heck::{ToKebabCase, ToLowerCamelCase, ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
+        use heck::{
+            ToKebabCase, ToLowerCamelCase, ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase,
+        };
 
         match self {
             RenameAll::LowerCase => s.to_lowercase(),
