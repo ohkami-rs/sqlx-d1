@@ -27,8 +27,8 @@ static LOCATION: LazyLock<Location> = LazyLock::new(|| {
         let cargo = std::env::var("CARGO").expect("`CARGO` must be set");
 
         let output = Command::new(&cargo)
-            .args(&["metadata", "--format-version=1", "--no-deps"])
-            .current_dir(&get_manifest_dir())
+            .args(["metadata", "--format-version=1", "--no-deps"])
+            .current_dir(get_manifest_dir())
             .env_remove("__CARGO_FIX_PLZ")
             .output()
             .expect("Could not fetch metadata");
@@ -79,8 +79,7 @@ impl Location {
         match sqlite_files.len() {
             0 => Ok(None),
             1 => Ok(sqlite_files.pop()),
-            _ => Err(io::Error::new(
-                io::ErrorKind::Other,
+            _ => Err(io::Error::other(
                 "Multiple miniflare's D1 emulators are found! \
                 Sorry, sqlx_d1 only supports single D1 binding now.",
             )),

@@ -95,7 +95,8 @@ const _: () = {
             #[cfg(target_arch = "wasm32")]
             {
                 Self {
-                    inner: unsafe { std::mem::transmute(d1) },
+                    // SAFETY: `worker::D1Database` is just a newtype wrapper of `worker_sys::D1Database`
+                    inner: unsafe { std::mem::transmute::<worker::D1Database, worker_sys::D1Database>(d1) },
                 }
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -475,12 +476,12 @@ const _: () = {
     unsafe impl Sync for D1ConnectOptions {}
 
     #[cfg(target_arch = "wasm32")]
-    const URL_CONVERSION_UNSUPPORTED_MESSAGE: &'static str = "\
+    const URL_CONVERSION_UNSUPPORTED_MESSAGE: &str = "\
         `sqlx_d1::D1ConnectOptions` doesn't support conversion between `Url`. \
         Consider connect from options created by `D1ConnectOptions::new`. \
     ";
 
-    const LOG_SETTINGS_UNSUPPORTED_MESSAGE: &'static str = "\
+    const LOG_SETTINGS_UNSUPPORTED_MESSAGE: &str = "\
         `sqlx_d1::D1ConnectOptions` doesn't support log settings.
     ";
 
@@ -489,7 +490,8 @@ const _: () = {
             #[cfg(target_arch = "wasm32")]
             {
                 Self {
-                    d1: unsafe { core::mem::transmute(d1) },
+                    // SAFETY: `worker::D1Database` is just a newtype wrapper of `worker_sys::D1Database`
+                    d1: unsafe { core::mem::transmute::<worker::D1Database, worker_sys::D1Database>(d1) },
                     pragmas: TogglePragmas::new(),
                 }
             }
@@ -585,8 +587,7 @@ const _: () = {
                         .collect::<Vec<_>>()
                         .try_into()
                         .map_err(|_| {
-                            io::Error::new(
-                                io::ErrorKind::Other,
+                            io::Error::other(
                                 "Currently, sqlx_d1 doesn't support multiple D1 bindings!",
                             )
                         })?;
@@ -681,12 +682,12 @@ const _: () = {
     }
     impl std::ops::BitOrAssign for TogglePragmas {
         fn bitor_assign(&mut self, rhs: Self) {
-            self.0 |= self.0 | rhs.0;
+            self.0 |= rhs.0;
         }
     }
     impl std::ops::BitAndAssign for TogglePragmas {
         fn bitand_assign(&mut self, rhs: Self) {
-            self.0 &= self.0 & rhs.0;
+            self.0 &= rhs.0;
         }
     }
 

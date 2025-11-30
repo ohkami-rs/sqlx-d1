@@ -43,3 +43,6 @@ DEBUG = ["sqlx-d1-core/DEBUG", "sqlx-d1-macros?/DEBUG"]
 [dev-dependencies]
 worker = { version = "0.7", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
+
+[lints.clippy]
+duplicated_attributes = "allow" # for readability around feature flags handling

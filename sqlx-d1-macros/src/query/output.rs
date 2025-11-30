@@ -68,7 +68,7 @@ enum ColumnNullabilityOverride {
 }
 
 enum ColumnTypeOverride {
-    Exact(Type),
+    Exact(Box<Type>),
     Wildcard,
     None,
 }
@@ -89,7 +89,7 @@ fn column_to_rust(describe: &Describe<D1>, i: usize) -> syn::Result<RustColumn> 
     let column = &describe.columns()[i];
 
     // add raw prefix to all identifiers
-    let decl = ColumnDecl::parse(&column.name()).map_err(|e| {
+    let decl = ColumnDecl::parse(column.name()).map_err(|e| {
         syn::Error::new(
             Span::call_site(),
             format!("column name {:?} is invalid: {e}", column.name()),
@@ -140,9 +140,9 @@ pub fn quote_query_as(
     let instantiations = columns.iter().enumerate().map(
         |(
             i,
-            &RustColumn {
-                ref var_name,
-                ref type_,
+            RustColumn {
+                var_name,
+                type_,
                 ..
             },
         )| {
@@ -226,9 +226,9 @@ pub fn quote_query_scalar(
 }
 
 fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
-    let type_info = &*column.type_info();
+    let type_info = column.type_info();
 
-    <D1 as sqlx_core::type_checking::TypeChecking>::return_type_for_id(&type_info)
+    <D1 as sqlx_core::type_checking::TypeChecking>::return_type_for_id(type_info)
         .map(|t| t.parse().unwrap())
         .unwrap_or_else(|| {
             syn::Error::new(
@@ -237,7 +237,7 @@ fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
                     "unsupported type {type_info} of {}",
                     DisplayColumn {
                         idx: i,
-                        name: &*column.name()
+                        name: column.name()
                     }
                 ),
             )
@@ -296,7 +296,7 @@ impl Parse for ColumnOverride {
             if let Type::Infer(_) = ty {
                 ColumnTypeOverride::Wildcard
             } else {
-                ColumnTypeOverride::Exact(ty)
+                ColumnTypeOverride::Exact(Box::new(ty))
             }
         } else {
             ColumnTypeOverride::None

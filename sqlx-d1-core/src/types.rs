@@ -6,9 +6,7 @@ use sqlx_core::encode::{Encode, IsNull};
 use sqlx_core::types::Type;
 use worker::{serde_wasm_bindgen, wasm_bindgen::JsValue};
 
-//////////////////////////////////////////////////////////////////////////////////
-/// compile-time compatibility check support for `sqlx::query_*!` macro's internal
-//////////////////////////////////////////////////////////////////////////////////
+/* compile-time compatibility check support for `sqlx::query_*!` macro's internal */
 
 #[doc(hidden)]
 pub trait Compatible<X: TypeChecker>: Sized {
@@ -82,9 +80,7 @@ sqlx_core::impl_type_checking! {
     feature-types: _info => None,
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-/// `Type`, `Encode`, `Decode` implementations for specific types
-///////////////////////////////////////////////////////////////////////////////////
+/* `Type`, `Encode`, `Decode` implementations for specific types */
 
 impl<'q, E: Encode<'q, D1>> Encode<'q, D1> for Option<E> {
     fn encode_by_ref(
@@ -207,7 +203,7 @@ const _: (/* bool */) = {
 
     impl Decode<'_, D1> for bool {
         fn decode(value: <D1 as sqlx_core::database::Database>::ValueRef<'_>) -> Result<Self, sqlx_core::error::BoxDynError> {
-            Ok((&*value).as_f64().is_some_and(|n| n != 0.))
+            Ok((*value).as_f64().is_some_and(|n| n != 0.))
         }
     }
 };

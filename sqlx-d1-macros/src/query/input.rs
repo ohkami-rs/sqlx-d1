@@ -30,7 +30,7 @@ enum QuerySrc {
 }
 
 pub enum RecordType {
-    Given(Type),
+    Given(Box<Type>),
     Scalar,
     Generated,
 }
@@ -148,7 +148,7 @@ impl QueryMacroInput {
                         return Ok(TokenStream::new());
                     }
 
-                    let param_type_name = <sqlx_d1_core::D1 as sqlx_core::type_checking::TypeChecking>::param_type_for_id(&param_type_info)
+                    let param_type_name = <sqlx_d1_core::D1 as sqlx_core::type_checking::TypeChecking>::param_type_for_id(param_type_info)
                         .ok_or_else(|| syn::Error::new(
                             param_expr.span(),
                             format!("unsupported type {param_type_info} for param #{}", i + 1)
@@ -251,9 +251,9 @@ fn resolve_path(path: impl AsRef<Path>, err_span: Span) -> syn::Result<PathBuf> 
     // requires `proc_macro::SourceFile::path()` to be stable
     // https://github.com/rust-lang/rust/issues/54725
     if path.is_relative()
-        && !path
+        && path
             .parent()
-            .map_or(false, |parent| !parent.as_os_str().is_empty())
+            .is_none_or(|parent| !parent.as_os_str().is_empty())
     {
         return Err(syn::Error::new(
             err_span,

@@ -54,7 +54,7 @@ const _: () = {
             &self,
         ) -> std::borrow::Cow<'_, <Self::Database as sqlx_core::database::Database>::TypeInfo>
         {
-            std::borrow::Cow::Owned(crate::type_info::D1TypeInfo::from_raw(&self.0.0))
+            std::borrow::Cow::Owned(crate::type_info::D1TypeInfo::from_raw(self.0.0))
         }
 
         fn is_null(&self) -> bool {
@@ -76,9 +76,9 @@ const _: () = {
         }
     }
 
-    impl<'r> Into<worker::wasm_bindgen::JsValue> for D1ValueRef<'r> {
-        fn into(self) -> worker::wasm_bindgen::JsValue {
-            self.0.0.clone()
+    impl<'r> From<D1ValueRef<'r>> for worker::wasm_bindgen::JsValue  {
+        fn from(d1valueref: D1ValueRef<'r>) -> worker::wasm_bindgen::JsValue {
+            d1valueref.0.0.clone()
         }
     }
 
