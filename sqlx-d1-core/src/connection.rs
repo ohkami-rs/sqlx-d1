@@ -96,7 +96,9 @@ const _: () = {
             {
                 Self {
                     // SAFETY: `worker::D1Database` is just a newtype wrapper of `worker_sys::D1Database`
-                    inner: unsafe { std::mem::transmute::<worker::D1Database, worker_sys::D1Database>(d1) },
+                    inner: unsafe {
+                        std::mem::transmute::<worker::D1Database, worker_sys::D1Database>(d1)
+                    },
                 }
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -491,7 +493,9 @@ const _: () = {
             {
                 Self {
                     // SAFETY: `worker::D1Database` is just a newtype wrapper of `worker_sys::D1Database`
-                    d1: unsafe { core::mem::transmute::<worker::D1Database, worker_sys::D1Database>(d1) },
+                    d1: unsafe {
+                        core::mem::transmute::<worker::D1Database, worker_sys::D1Database>(d1)
+                    },
                     pragmas: TogglePragmas::new(),
                 }
             }

@@ -141,9 +141,7 @@ pub fn quote_query_as(
         |(
             i,
             RustColumn {
-                var_name,
-                type_,
-                ..
+                var_name, type_, ..
             },
         )| {
             match (input.checked, type_) {

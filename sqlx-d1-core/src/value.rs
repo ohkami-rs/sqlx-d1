@@ -76,7 +76,7 @@ const _: () = {
         }
     }
 
-    impl<'r> From<D1ValueRef<'r>> for worker::wasm_bindgen::JsValue  {
+    impl<'r> From<D1ValueRef<'r>> for worker::wasm_bindgen::JsValue {
         fn from(d1valueref: D1ValueRef<'r>) -> worker::wasm_bindgen::JsValue {
             d1valueref.0.0.clone()
         }
