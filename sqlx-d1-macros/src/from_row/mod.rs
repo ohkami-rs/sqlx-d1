@@ -7,8 +7,8 @@ use self::attributes::{parse_child_attributes, parse_container_attributes};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_quote, punctuated::Punctuated, token::Comma, Data, DataStruct, DeriveInput, Expr, Field,
-    Fields, FieldsNamed, FieldsUnnamed, Lifetime, Stmt,
+    Data, DataStruct, DeriveInput, Expr, Field, Fields, FieldsNamed, FieldsUnnamed, Lifetime, Stmt,
+    parse_quote, punctuated::Punctuated, token::Comma,
 };
 
 pub fn expand_derive_from_row(input: TokenStream) -> syn::Result<TokenStream> {
@@ -56,7 +56,9 @@ fn expand_derive_from_row_struct(
     let (_, ty_generics, _) = generics.split_for_impl();
 
     let mut generics = generics.clone();
-    generics.params.insert(0, parse_quote!(R: ::sqlx_d1::sqlx_core::row::Row));
+    generics
+        .params
+        .insert(0, parse_quote!(R: ::sqlx_d1::sqlx_core::row::Row));
 
     if provided {
         generics.params.insert(0, parse_quote!(#lifetime));
@@ -140,7 +142,7 @@ fn expand_derive_from_row_struct(
                 (false, Some(try_from), false) => {
                     predicates
                         .push(parse_quote!(#try_from: ::sqlx_d1::sqlx_core::decode::Decode<#lifetime, R::Database>));
-                    predicates.push(parse_quote!(#try_from: ::sqlx_d1::sqlx_core::types::Type<R::Database>)); 
+                    predicates.push(parse_quote!(#try_from: ::sqlx_d1::sqlx_core::types::Type<R::Database>));
 
                     parse_quote!(
                         __row.try_get(#id_s)
@@ -251,7 +253,9 @@ fn expand_derive_from_row_struct_unnamed(
     let (_, ty_generics, _) = generics.split_for_impl();
 
     let mut generics = generics.clone();
-    generics.params.insert(0, parse_quote!(R: ::sqlx_d1::sqlx_core::row::Row));
+    generics
+        .params
+        .insert(0, parse_quote!(R: ::sqlx_d1::sqlx_core::row::Row));
 
     if provided {
         generics.params.insert(0, parse_quote!(#lifetime));
@@ -266,7 +270,8 @@ fn expand_derive_from_row_struct_unnamed(
     for field in fields {
         let ty = &field.ty;
 
-        predicates.push(parse_quote!(#ty: ::sqlx_d1::sqlx_core::decode::Decode<#lifetime, R::Database>));
+        predicates
+            .push(parse_quote!(#ty: ::sqlx_d1::sqlx_core::decode::Decode<#lifetime, R::Database>));
         predicates.push(parse_quote!(#ty: ::sqlx_d1::sqlx_core::types::Type<R::Database>));
     }
 

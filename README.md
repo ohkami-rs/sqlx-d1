@@ -13,7 +13,12 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
     <a href="https://crates.io/crates/sqlx-d1"><img alt="crates.io" src="https://img.shields.io/crates/v/sqlx-d1" /></a>
 </div>
 
-`worker` version: *0.6*
+## Compatible `worker` version
+
+| `sqlx-d1` | `worker` |
+| :-------: | :------: |
+|   0.2.*   |   0.6.*  |
+|   0.3.*   |   0.7.*  |
 
 ## Background
 
@@ -53,8 +58,8 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 # Cargo.toml
 
 [dependencies]
-sqlx-d1 = { version = "0.2", features = ["macros"] }
-worker = { version = "0.6", features = ["d1"] }
+sqlx-d1 = { version = "0.3", features = ["macros"] }
+worker = { version = "0.7", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
 ```sh

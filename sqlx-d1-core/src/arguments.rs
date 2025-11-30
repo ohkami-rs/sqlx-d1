@@ -1,7 +1,5 @@
 #[derive(Default)]
-pub struct D1Arguments(
-    Vec<crate::value::D1Value>
-);
+pub struct D1Arguments(Vec<crate::value::D1Value>);
 
 impl<'q> sqlx_core::arguments::Arguments<'q> for D1Arguments {
     type Database = crate::D1;
@@ -16,7 +14,9 @@ impl<'q> sqlx_core::arguments::Arguments<'q> for D1Arguments {
 
     fn add<T>(&mut self, value: T) -> Result<(), sqlx_core::error::BoxDynError>
     where
-        T: 'q + sqlx_core::encode::Encode<'q, Self::Database> + sqlx_core::types::Type<Self::Database>,
+        T: 'q
+            + sqlx_core::encode::Encode<'q, Self::Database>
+            + sqlx_core::types::Type<Self::Database>,
     {
         let len_before_encode = self.0.len();
         let _/* IsNull */ = value.encode(&mut self.0)
@@ -36,6 +36,6 @@ impl AsRef<[worker::wasm_bindgen::JsValue]> for D1Arguments {
         let this: &[crate::value::D1Value] = self.0.as_slice();
 
         /* SAFETY: `D1Value` is newtype of `JsValue` */
-        unsafe {std::mem::transmute(this)}
+        unsafe { std::mem::transmute(this) }
     }
 }

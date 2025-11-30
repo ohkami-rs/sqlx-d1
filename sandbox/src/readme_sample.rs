@@ -19,13 +19,13 @@ pub async fn main(
         INSERT INTO users (name, age) VALUES (?, ?)
         RETURNING id
         ",
-            req.name,
-            req.age
-        )
-        .fetch_one(&conn)
-        .await
-        .map_err(|e| worker::Error::RustError(e.to_string()))?
-        .id;
+        req.name,
+        req.age
+    )
+    .fetch_one(&conn)
+    .await
+    .map_err(|e| worker::Error::RustError(e.to_string()))?
+    .id;
 
     worker::Response::ok(format!("Your id is {id}!"))
 }

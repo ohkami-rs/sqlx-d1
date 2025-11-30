@@ -2,7 +2,9 @@ pub struct D1Error(worker::send::SendWrapper<worker::Error>);
 
 impl D1Error {
     pub(crate) fn from_rust(e: impl std::error::Error) -> Self {
-        Self(worker::send::SendWrapper(worker::Error::RustError(e.to_string())))
+        Self(worker::send::SendWrapper(worker::Error::RustError(
+            e.to_string(),
+        )))
     }
 }
 
