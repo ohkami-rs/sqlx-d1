@@ -1,12 +1,12 @@
 mod input;
 mod output;
 
+use proc_macro2::{Span, TokenStream};
+use quote::{format_ident, quote};
 use std::io;
-use std::sync::{LazyLock, OnceLock};
 use std::path::{Path, PathBuf};
-use proc_macro2::{TokenStream, Span};
+use std::sync::{LazyLock, OnceLock};
 use syn::LitStr;
-use quote::{quote, format_ident};
 
 struct Location {
     manifest_dir: PathBuf,
@@ -23,48 +23,46 @@ static LOCATION: LazyLock<Location> = LazyLock::new(|| {
     fn get_workspace_root() -> PathBuf {
         use serde::Deserialize;
         use std::process::Command;
-        
+
         let cargo = std::env::var("CARGO").expect("`CARGO` must be set");
-        
+
         let output = Command::new(&cargo)
             .args(&["metadata", "--format-version=1", "--no-deps"])
             .current_dir(&get_manifest_dir())
             .env_remove("__CARGO_FIX_PLZ")
             .output()
             .expect("Could not fetch metadata");
-        
+
         #[derive(Deserialize)]
         struct CargoMetadata {
             workspace_root: PathBuf,
         }
-        
+
         let cargo_metadata: CargoMetadata =
             serde_json::from_slice(&output.stdout).expect("Invalid `cargo metadata` output");
-        
+
         cargo_metadata.workspace_root
     }
 
     Location {
         manifest_dir: get_manifest_dir(),
-        workspace_root: LazyLock::new(get_workspace_root)
+        workspace_root: LazyLock::new(get_workspace_root),
     }
 });
 impl Location {
     fn miniflare_sqlite_file(&self) -> Result<Option<PathBuf>, io::Error> {
         fn miniflare_d1_dir_path_in_parent(parent_path: impl AsRef<Path>) -> PathBuf {
-            parent_path.as_ref()
+            parent_path
+                .as_ref()
                 .join(".wrangler")
                 .join("state")
                 .join("v3")
                 .join("d1")
                 .join("miniflare-D1DatabaseObject")
         }
-        
+
         let miniflare_d1_dir = 'search: {
-            for parent_candidate in [
-                &*LOCATION.manifest_dir,
-                &*LOCATION.workspace_root,
-            ] {
+            for parent_candidate in [&*LOCATION.manifest_dir, &*LOCATION.workspace_root] {
                 let candidate = miniflare_d1_dir_path_in_parent(parent_candidate);
                 if std::fs::exists(&candidate)? && candidate.is_dir() {
                     break 'search candidate;
@@ -72,30 +70,27 @@ impl Location {
             }
             return Ok(None);
         };
-    
+
         let mut sqlite_files = std::fs::read_dir(miniflare_d1_dir)?
             .filter_map(|r| r.as_ref().ok().map(|e| e.path()))
             .filter(|p| p.extension().is_some_and(|x| x == "sqlite"))
             .collect::<Vec<_>>();
-    
+
         match sqlite_files.len() {
             0 => Ok(None),
             1 => Ok(sqlite_files.pop()),
             _ => Err(io::Error::new(
                 io::ErrorKind::Other,
                 "Multiple miniflare's D1 emulators are found! \
-                Sorry, sqlx_d1 only supports single D1 binding now."
+                Sorry, sqlx_d1 only supports single D1 binding now.",
             )),
         }
     }
 
     fn dot_sqlx_dir(&self) -> Result<Option<DotSqlx>, io::Error> {
-        for parent_candidate in [
-            &*LOCATION.manifest_dir,
-            &*LOCATION.workspace_root,
-        ] {
+        for parent_candidate in [&*LOCATION.manifest_dir, &*LOCATION.workspace_root] {
             if let Some(it) = DotSqlx::find_in_parent(parent_candidate)? {
-                return Ok(Some(it))
+                return Ok(Some(it));
             }
         }
         Ok(None)
@@ -129,42 +124,54 @@ impl DotSqlx {
         self.0.join(file_name)
     }
 
-    fn get_cached_describe_of(&self, sql: &str) -> Result<Option<sqlx_core::describe::Describe<sqlx_d1_core::D1>>, io::Error> {
+    fn get_cached_describe_of(
+        &self,
+        sql: &str,
+    ) -> Result<Option<sqlx_core::describe::Describe<sqlx_d1_core::D1>>, io::Error> {
         match std::fs::read(self.file_path_of(sql)) {
             Ok(bytes) => {
-                let describe = ::serde_json::from_slice(&bytes).map_err(|e| io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!("failed to parse the query cache of `{sql}`: {e}")
-                ))?;
+                let describe = ::serde_json::from_slice(&bytes).map_err(|e| {
+                    io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("failed to parse the query cache of `{sql}`: {e}"),
+                    )
+                })?;
                 Ok(Some(describe))
             }
-            Err(e) => if matches!(e.kind(), io::ErrorKind::NotFound) {
-                Ok(None)
-            } else {
-                Err(e)
+            Err(e) => {
+                if matches!(e.kind(), io::ErrorKind::NotFound) {
+                    Ok(None)
+                } else {
+                    Err(e)
+                }
             }
         }
     }
 
     /// ref: <https://github.com/launchbadge/sqlx/blob/6651d2df72586519708147d96e1ec1054a898c1e/sqlx-macros-core/src/query/data.rs#L153-L190>
-    fn cache_describe(&self, sql: &str, describe: sqlx_core::describe::Describe<sqlx_d1_core::D1>) -> Result<(), io::Error> {
-        let describe = ::serde_json::to_vec(&describe)
-            .map_err(|e| io::Error::new(
+    fn cache_describe(
+        &self,
+        sql: &str,
+        describe: sqlx_core::describe::Describe<sqlx_d1_core::D1>,
+    ) -> Result<(), io::Error> {
+        let describe = ::serde_json::to_vec(&describe).map_err(|e| {
+            io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("failed to serialize the query cache of `{sql}`: {e}")
-            ))?;
+                format!("failed to serialize the query cache of `{sql}`: {e}"),
+            )
+        })?;
         std::fs::write(self.file_path_of(sql), describe)?;
         Ok(())
     }
 }
 
 pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
-    use sqlx_d1_core::D1Connection;
     use sqlx_core::executor::Executor;
+    use sqlx_d1_core::D1Connection;
     // Assumeing the cost of context switching is almost the same
     // or larger than that of synchronous blocking in this case
     use std::sync::Mutex;
-    
+
     let input = syn::parse2::<self::input::QueryMacroInput>(input)?;
 
     let describe = match LOCATION.miniflare_sqlite_file().map_err(|e| syn::Error::new(Span::call_site(), e))? {
@@ -220,7 +227,7 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
             ))
         }
     };
-    
+
     compare_expand(input, describe)
 }
 
@@ -240,9 +247,12 @@ fn compare_expand(
 
         let _: () = (n_input_params == n_correct_params)
             .then_some(())
-            .ok_or_else(|| syn::Error::new(Span::call_site(), format!(
-                "expected {n_correct_params} parameters, got {n_input_params}"
-            )))?;
+            .ok_or_else(|| {
+                syn::Error::new(
+                    Span::call_site(),
+                    format!("expected {n_correct_params} parameters, got {n_input_params}"),
+                )
+            })?;
     }
 
     let args_tokens = input.quote_args_with(&describe)?;
@@ -260,20 +270,11 @@ fn compare_expand(
     } else {
         match &input.record_type {
             input::RecordType::Scalar => {
-                output::quote_query_scalar(
-                    &input,
-                    &query_args_ident,
-                    &describe,
-                )?
+                output::quote_query_scalar(&input, &query_args_ident, &describe)?
             }
             input::RecordType::Given(out_ty) => {
                 let columns = output::columns_to_rust(&describe)?;
-                output::quote_query_as(
-                    &input,
-                    out_ty,
-                    &query_args_ident,
-                    &columns
-                )
+                output::quote_query_as(&input, out_ty, &query_args_ident, &columns)
             }
             input::RecordType::Generated => {
                 let columns = self::output::columns_to_rust(&describe)?;
@@ -285,8 +286,8 @@ fn compare_expand(
                         return Err(syn::Error::new(
                             rust_column.ident.span(),
                             "wildcard overrides are only allowed with an explicit record type, \
-                            e.g. `query_as!()` and its variants"
-                        ))
+                            e.g. `query_as!()` and its variants",
+                        ));
                     }
                 }
 
@@ -315,8 +316,13 @@ fn compare_expand(
         }
     };
 
-    if let Some(dot_sqlx_dir) = LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {
-        dot_sqlx_dir.cache_describe(&input.sql, describe).map_err(|e| syn::Error::new(input.src_span, e))?;
+    if let Some(dot_sqlx_dir) = LOCATION
+        .dot_sqlx_dir()
+        .map_err(|e| syn::Error::new(input.src_span, e))?
+    {
+        dot_sqlx_dir
+            .cache_describe(&input.sql, describe)
+            .map_err(|e| syn::Error::new(input.src_span, e))?;
     }
 
     Ok(quote! {

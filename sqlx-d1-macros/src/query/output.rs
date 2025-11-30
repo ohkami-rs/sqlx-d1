@@ -4,17 +4,17 @@ use super::input::QueryMacroInput;
 
 use sqlx_d1_core::D1;
 
-use sqlx_core::database::Database;
 use sqlx_core::column::Column;
+use sqlx_core::database::Database;
 use sqlx_core::describe::Describe;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{ToTokens, TokenStreamExt, quote};
 use syn::Type;
 
 use std::fmt::{self, Display, Formatter};
-use syn::parse::{Parse, ParseStream};
 use syn::Token;
+use syn::parse::{Parse, ParseStream};
 
 pub struct RustColumn {
     pub(super) ident: Ident,
@@ -89,11 +89,12 @@ fn column_to_rust(describe: &Describe<D1>, i: usize) -> syn::Result<RustColumn> 
     let column = &describe.columns()[i];
 
     // add raw prefix to all identifiers
-    let decl = ColumnDecl::parse(&column.name())
-        .map_err(|e| syn::Error::new(
+    let decl = ColumnDecl::parse(&column.name()).map_err(|e| {
+        syn::Error::new(
             Span::call_site(),
-            format!("column name {:?} is invalid: {e}", column.name()
-        )))?;
+            format!("column name {:?} is invalid: {e}", column.name()),
+        )
+    })?;
 
     let ColumnOverride { nullability, type_ } = decl.r#override;
 
@@ -181,9 +182,9 @@ pub fn quote_query_as(
         ::sqlx_d1::sqlx_core::query::query_with_result::<::sqlx_d1::D1, _>(#sql, #bind_args)
             .try_map(|row: <::sqlx_d1::D1 as ::sqlx_d1::sqlx_core::database::Database>::Row| {
                 use ::sqlx_d1::sqlx_core::row::Row as _;
-            
+
                 #(#instantiations)*
-            
+
                 ::std::result::Result::Ok(#out_ty { #(#ident: #var_name),* })
             })
     }
@@ -229,10 +230,19 @@ fn get_column_type(i: usize, column: &<D1 as Database>::Column) -> TokenStream {
 
     <D1 as sqlx_core::type_checking::TypeChecking>::return_type_for_id(&type_info)
         .map(|t| t.parse().unwrap())
-        .unwrap_or_else(|| syn::Error::new(Span::call_site(), format!(
-            "unsupported type {type_info} of {}",
-            DisplayColumn { idx: i, name: &*column.name() }
-        )).to_compile_error())
+        .unwrap_or_else(|| {
+            syn::Error::new(
+                Span::call_site(),
+                format!(
+                    "unsupported type {type_info} of {}",
+                    DisplayColumn {
+                        idx: i,
+                        name: &*column.name()
+                    }
+                ),
+            )
+            .to_compile_error()
+        })
 }
 
 impl ColumnDecl {
@@ -313,6 +323,6 @@ fn parse_ident(name: &str) -> syn::Result<Ident> {
 
     Err(syn::Error::new(
         Span::call_site(),
-        format!("{name:?} is not a valid Rust identifier")
+        format!("{name:?} is not a valid Rust identifier"),
     ))
 }

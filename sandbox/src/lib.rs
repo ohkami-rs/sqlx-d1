@@ -47,12 +47,15 @@ async fn main(
         .get_async("/", |_req, _ctx| {
             let conn = conn.clone();
             async move {
-                let users = sqlx_d1::query_as!(User, "
+                let users = sqlx_d1::query_as!(
+                    User,
+                    "
                     SELECT id, uuid, name, age FROM users
-                ")
-                    .fetch_all(&conn)
-                    .await
-                    .map_err(|e| worker::Error::RustError(e.to_string()))?;
+                "
+                )
+                .fetch_all(&conn)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
 
                 worker::Response::from_json(&users)
             }
@@ -62,48 +65,55 @@ async fn main(
             async move {
                 let CreateUserRequest { name, age } = req.json().await?;
 
-                let uuid = HyphenatedUuid::from_uuid(
-                    uuid::Uuid::parse_str(&js::randomUUID()).unwrap()
-                );
+                let uuid =
+                    HyphenatedUuid::from_uuid(uuid::Uuid::parse_str(&js::randomUUID()).unwrap());
 
-                let created_id = sqlx_d1::query_scalar!("
+                let created_id = sqlx_d1::query_scalar!(
+                    "
                     INSERT INTO users (uuid, name, age) VALUES (?, ?, ?)
                     RETURNING id
-                ", uuid, name, age)
-                    .fetch_one(&conn)
-                    .await
-                    .map_err(|e| worker::Error::RustError(e.to_string()))?;
+                ",
+                    uuid,
+                    name,
+                    age
+                )
+                .fetch_one(&conn)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
 
                 worker::Response::from_json(&User {
                     id: created_id,
                     uuid: Some(uuid.into()),
                     name: name.to_string(),
                     age: age.map(|a| a.into()),
-                }).map(|res| res.with_status(201))
+                })
+                .map(|res| res.with_status(201))
             }
         })
         .get_async("/:id", |_req, ctx| {
             let conn = conn.clone();
             async move {
-                let id: u32 = ctx.param("id")
+                let id: u32 = ctx
+                    .param("id")
                     .ok_or_else(|| worker::Error::RustError("Missing id parameter".to_string()))?
                     .parse()
                     .map_err(|_| worker::Error::RustError("Invalid user ID".to_string()))?;
 
-                let user_record = sqlx_d1::query!("
+                let user_record = sqlx_d1::query!(
+                    "
                     SELECT uuid, name, age FROM users
                     WHERE id = ?
-                ", id)
-                    .fetch_optional(&conn)
-                    .await
-                    .map_err(|e| worker::Error::RustError(e.to_string()))?
-                    .ok_or_else(|| worker::Error::RustError(format!("User(id = {id}) not found")))?;
+                ",
+                    id
+                )
+                .fetch_optional(&conn)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?
+                .ok_or_else(|| worker::Error::RustError(format!("User(id = {id}) not found")))?;
 
-                let uuid = user_record.uuid.map(|uuid| {
-                    HyphenatedUuid::from_uuid(
-                        uuid::Uuid::parse_str(&uuid).unwrap()
-                    )
-                });
+                let uuid = user_record
+                    .uuid
+                    .map(|uuid| HyphenatedUuid::from_uuid(uuid::Uuid::parse_str(&uuid).unwrap()));
 
                 let user = User {
                     id: id.into(),

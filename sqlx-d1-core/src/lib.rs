@@ -1,20 +1,21 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod error;
-mod value;
-mod column;
-mod row;
-mod connection;
-mod transaction;
 mod arguments;
-mod statement;
+mod column;
+mod connection;
+mod error;
 mod query_result;
+mod row;
+mod statement;
+mod transaction;
 mod type_info;
 pub mod types;
+mod value;
 
-type ResultFuture<'a, T> = std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
+type ResultFuture<'a, T> =
+    std::pin::Pin<Box<dyn Future<Output = Result<T, sqlx_core::Error>> + Send + 'a>>;
 
-pub use connection::{D1Connection, D1ConnectOptions};
+pub use connection::{D1ConnectOptions, D1Connection};
 
 #[derive(Debug)]
 pub struct D1;
@@ -88,10 +89,7 @@ pub mod query {
     }
 }
 pub use query::{
-    QueryBuilder,
-    query, query_with,
-    query_as, query_as_with,
-    query_scalar, query_scalar_with,
+    QueryBuilder, query, query_as, query_as_with, query_scalar, query_scalar_with, query_with,
 };
 
 pub use sqlx_core::Error;

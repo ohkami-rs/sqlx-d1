@@ -1,11 +1,10 @@
 //! ref: <https://github.com/launchbadge/sqlx/blob/277dd36c7868acb10eae20f50418e273b71c8499/sqlx-sqlite/src/types/chrono.rs>
 
-use crate::{D1, type_info::D1TypeInfo, value::D1Value, error::D1Error};
-use sqlx_core::encode::{IsNull, Encode};
+use crate::{D1, error::D1Error, type_info::D1TypeInfo, value::D1Value};
 use sqlx_core::decode::Decode;
+use sqlx_core::encode::{Encode, IsNull};
 use sqlx_core::types::Type;
 use worker::{serde_wasm_bindgen, wasm_bindgen::JsValue};
-
 
 //////////////////////////////////////////////////////////////////////////////////
 /// compile-time compatibility check support for `sqlx::query_*!` macro's internal
@@ -13,7 +12,9 @@ use worker::{serde_wasm_bindgen, wasm_bindgen::JsValue};
 
 #[doc(hidden)]
 pub trait Compatible<X: TypeChecker>: Sized {
-    fn then(self) -> Self {self}
+    fn then(self) -> Self {
+        self
+    }
 }
 impl<X: TypeChecker, C: Compatible<X>> Compatible<Option<X>> for Option<C> {}
 
@@ -81,7 +82,6 @@ sqlx_core::impl_type_checking! {
     feature-types: _info => None,
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////
 /// `Type`, `Encode`, `Decode` implementations for specific types
 ///////////////////////////////////////////////////////////////////////////////////
@@ -92,9 +92,7 @@ impl<'q, E: Encode<'q, D1>> Encode<'q, D1> for Option<E> {
         buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
     ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
         match self {
-            Some(e) => {
-                <E as Encode<'q, D1>>::encode_by_ref(e, buf)
-            }
+            Some(e) => <E as Encode<'q, D1>>::encode_by_ref(e, buf),
             None => {
                 buf.push(D1Value::null());
                 Ok(IsNull::Yes)
@@ -109,15 +107,19 @@ macro_rules! serialize {
             &self,
             buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<$q>,
         ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
-            buf.push(D1Value::from(serde_wasm_bindgen::to_value(self).map_err(D1Error::from_rust)?));
-            Ok(IsNull::No)            
+            buf.push(D1Value::from(
+                serde_wasm_bindgen::to_value(self).map_err(D1Error::from_rust)?,
+            ));
+            Ok(IsNull::No)
         }
     };
 }
 
 macro_rules! deserialize {
     () => {
-        fn decode(value: <D1 as sqlx_core::database::Database>::ValueRef<'_>) -> Result<Self, sqlx_core::error::BoxDynError> {
+        fn decode(
+            value: <D1 as sqlx_core::database::Database>::ValueRef<'_>,
+        ) -> Result<Self, sqlx_core::error::BoxDynError> {
             Ok(serde_wasm_bindgen::from_value(value.into()).map_err(D1Error::from_rust)?)
         }
     };
@@ -328,7 +330,7 @@ const _: (/* uuid */) = {
             &self,
             buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
         ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
-            <String as Encode<'q, D1>>::encode(self.to_string(), buf)            
+            <String as Encode<'q, D1>>::encode(self.to_string(), buf)
         }
     }
     impl Decode<'_, D1> for Hyphenated {
@@ -352,7 +354,7 @@ const _: (/* uuid */) = {
             &self,
             buf: &mut <D1 as sqlx_core::database::Database>::ArgumentBuffer<'q>,
         ) -> Result<IsNull, sqlx_core::error::BoxDynError> {
-            <String as Encode<'q, D1>>::encode(self.to_string(), buf)            
+            <String as Encode<'q, D1>>::encode(self.to_string(), buf)
         }
     }
     impl Decode<'_, D1> for Simple {
@@ -434,7 +436,7 @@ const _: (/* chrono */) = {
                         }
                     };
                 }
-                
+
                 match &**value.type_info() {
                     Text => {
                         let value = value.as_string()?;
@@ -470,11 +472,11 @@ const _: (/* chrono */) = {
                         let epoch_in_julian_days = 2_440_587.5;
                         let seconds_in_day = 86400.0;
                         let timestamp = (value - epoch_in_julian_days) * seconds_in_day;
-                    
+
                         if !timestamp.is_finite() {
                             return None;
                         }
-                    
+
                         // We don't really have a choice but to do lossy casts for this conversion
                         // We checked above if the value is infinite or NaN which could otherwise cause problems
                         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
