@@ -59,7 +59,7 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 
 [dependencies]
 sqlx-d1 = { version = "0.3", features = ["macros"] }
-worker = { version = "0.6", features = ["d1"] }
+worker = { version = "0.7", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
 ```sh
