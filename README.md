@@ -13,7 +13,12 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
     <a href="https://crates.io/crates/sqlx-d1"><img alt="crates.io" src="https://img.shields.io/crates/v/sqlx-d1" /></a>
 </div>
 
-`worker` version: *0.6*
+## Compatible `worker` version
+
+| `sqlx-d1` | `worker` |
+| :-------: | :------: |
+|   0.2.*   |   0.6.*  |
+|   0.3.*   |   0.7.*  |
 
 ## Background
 
