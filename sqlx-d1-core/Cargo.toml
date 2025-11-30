@@ -1,16 +1,16 @@
 [package]
-name          = "sqlx-d1-core"
+name = "sqlx-d1-core"
 documentation = "https://docs.rs/sqlx-d1-core"
-description   = "core implementation for sqlx-d1 - SQLx for Cloudflare D1"
-version       = { workspace = true }
-edition       = { workspace = true }
-authors       = { workspace = true }
-homepage      = { workspace = true }
-repository    = { workspace = true }
-readme        = { workspace = true }
-keywords      = { workspace = true }
-categories    = { workspace = true }
-license       = { workspace = true }
+description = "core implementation for sqlx-d1 - SQLx for Cloudflare D1"
+version = { workspace = true }
+edition = { workspace = true }
+authors = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+readme = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+license = { workspace = true }
 
 [package.metadata.docs.rs]
 features = ["json", "uuid", "chrono", "offline"]
@@ -18,23 +18,25 @@ features = ["json", "uuid", "chrono", "offline"]
 [features]
 # time not implemented on this platform
 
-json    = ["sqlx-core/json"]
-uuid    = ["sqlx-core/uuid"]
-chrono  = ["sqlx-core/chrono"]
+json = ["sqlx-core/json"]
+uuid = ["sqlx-core/uuid"]
+chrono = ["sqlx-core/chrono"]
 decimal = ["dep:rust_decimal"]
 offline = ["sqlx-core/offline", "serde/derive"]
-DEBUG   = []
+DEBUG = []
 
 [dependencies]
 # core dependencies
-sqlx-core    = { version = "=0.8.3" }
-worker       = { version = "0.6", features = ["d1"] }
-worker-sys   = { version = "0.6", features = ["d1"] }
+sqlx-core = { version = "=0.8.3" }
+worker = { version = "0.7", features = ["d1"] }
+worker-sys = { version = "0.7", features = ["d1"] }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
-serde        = { version = "1.0" }
-log          = { version = "0.4" }  # required for `sqlx_core::connection::ConnectOptions`
-rust_decimal = { version = "1", optional = true, default-features = false, features = ["std"] }
+serde = { version = "1.0" }
+log = { version = "0.4" } # required for `sqlx_core::connection::ConnectOptions`
+rust_decimal = { version = "1", optional = true, default-features = false, features = [
+  "std",
+] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 sqlx-sqlite = { version = "=0.8.3", features = ["bundled"] }
