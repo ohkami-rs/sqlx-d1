@@ -1,5 +1,7 @@
 #[cfg(feature = "DEBUG")]
 pub mod readme_sample;
+#[cfg(feature = "DEBUG")]
+pub mod issue_51;
 
 use serde::{Deserialize, Serialize};
 use uuid::fmt::Hyphenated as HyphenatedUuid;
