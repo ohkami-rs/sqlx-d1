@@ -92,6 +92,27 @@ async fn main(
                 .map(|res| res.with_status(201))
             }
         })
+        .post_async("/no_returning", |mut req, _ctx| {
+            let conn = conn.clone();
+            async move {
+                let CreateUserRequest { name, age } = req.json().await?;
+
+                let uuid =
+                    HyphenatedUuid::from_uuid(uuid::Uuid::parse_str(&js::randomUUID()).unwrap());
+
+                sqlx_d1::query!(
+                    "INSERT INTO users (uuid, name, age) VALUES (?, ?, ?)",
+                    uuid,
+                    name,
+                    age
+                )
+                .execute(&conn)
+                .await
+                .map_err(|e| worker::Error::RustError(e.to_string()))?;
+
+                worker::Response::empty().map(|res| res.with_status(204))
+            }
+        })
         .get_async("/:id", |_req, ctx| {
             let conn = conn.clone();
             async move {
