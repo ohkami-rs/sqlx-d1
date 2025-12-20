@@ -264,7 +264,7 @@ fn compare_expand(
     }) {
         let sql = LitStr::new(&input.sql, input.src_span);
         quote! {
-            ::sqlx_d1::query_with(#sql, #query_args_ident)
+            ::sqlx_d1::sqlx_core::query::query_with_result::<::sqlx_d1::D1, _>(#sql, #query_args_ident)
         }
     } else {
         match &input.record_type {
