@@ -15,6 +15,8 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: hmarr/auto-approve-action@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: approve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr review ${{ github.event.number }} --approve
