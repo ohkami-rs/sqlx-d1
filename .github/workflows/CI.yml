@@ -32,7 +32,7 @@ jobs:
           rustup default ${{ matrix.toolchain }}
           rustup target add wasm32-unknown-unknown
           rustup component add rustfmt clippy
-      
+
       - name: Test documentations
         working-directory: ./sqlx-d1
         run: cargo test --doc --features macros
