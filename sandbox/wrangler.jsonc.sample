@@ -1,0 +1,15 @@
+{
+  "name": "sqlx-d1-sandbox",
+  "main": "build/worker/shim.mjs",
+  "compatibility_date": "2025-02-14",
+  "build": {
+    "command": "test $WORKER_DEV && worker-build --dev --features DEBUG || worker-build"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name: "sqlx-d1-sandbox-db",
+      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }
+  ]
+}

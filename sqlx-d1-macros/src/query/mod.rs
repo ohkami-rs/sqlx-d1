@@ -195,7 +195,7 @@ pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error
                 target = \"wasm32-unknown-unknown\"\n
                 \n\
                 If you think this of a bug, please let me know the situation in \
-                GitHub Issues (https://ohkami-rs/sqlx-d1/issues) !"
+                GitHub Issues (https://github.com/ohkami-rs/sqlx-d1/issues) !"
             ))?;
 
             futures_lite::future::block_on(async {

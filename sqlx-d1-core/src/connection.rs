@@ -29,17 +29,22 @@ macro_rules! unreachable_native_impl_of_item_for_only_wasm32 {
 /// # Cargo.toml
 ///
 /// [dependencies]
-/// sqlx_d1 = { version = "0.1", features = ["macros"] }
-/// worker = { version = "0.6", features = ["d1"] }
+/// sqlx_d1 = { version = "0.3", features = ["macros"] }
+/// worker = { version = "0.7", features = ["d1"] }
 /// serde = { version = "1.0", features = ["derive"] }
 /// ```
-/// ```toml
-/// # wrangler.toml
+/// ```jsonc
+/// // wrangler.jsonc
 ///
-/// [[d1_database]]
-/// binding = "DB"
-/// database_name = "..."
-/// database_id = "..."
+/// {
+///   "d1_databases": [
+///     {
+///       "binding": "DB",
+///       "database_name": "...",
+///       "database_id": "..."
+///     }
+///   ]
+/// }
 /// ```
 /// ```rust,ignore
 /// // src/lib.rs

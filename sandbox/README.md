@@ -17,7 +17,7 @@ npm create cloudflare ＜project dir＞ -- --template https://github.com/ohkami-
 cd ＜project dir＞
 ```
 
-If you push the project to your GitHub repo, **you should add `wrangler.toml` into .gitignore**！
+If you push the project to your GitHub repo, **you should add `wrangler.jsonc` into .gitignore**！
 
 ## Local dev
 
