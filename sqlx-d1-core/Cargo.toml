@@ -27,9 +27,9 @@ DEBUG = []
 
 [dependencies]
 # core dependencies
-sqlx-core = { version = "=0.8.3" }
-worker = { version = "0.7", features = ["d1"] }
-worker-sys = { version = "0.7", features = ["d1"] }
+sqlx-core = { version = "=0.8.6" }
+worker = { version = "0.8", features = ["d1"] }
+worker-sys = { version = "0.8", features = ["d1"] }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 serde = { version = "1.0" }
@@ -39,4 +39,4 @@ rust_decimal = { version = "1", optional = true, default-features = false, featu
 ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-sqlx-sqlite = { version = "=0.8.3", features = ["bundled"] }
+sqlx-sqlite = { version = "=0.8.6", features = ["bundled"] }

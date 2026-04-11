@@ -16,8 +16,8 @@ license = { workspace = true }
 features = ["json", "uuid", "chrono", "decimal", "macros"]
 
 [dependencies]
-sqlx-d1-core   = { path = "../sqlx-d1-core",   version = "=0.3.1" }
-sqlx-d1-macros = { path = "../sqlx-d1-macros", version = "=0.3.1", optional = true }
+sqlx-d1-core = { path = "../sqlx-d1-core", version = "=0.4.0" }
+sqlx-d1-macros = { path = "../sqlx-d1-macros", version = "=0.4.0", optional = true }
 
 [features]
 json = ["sqlx-d1-core/json"]
@@ -41,7 +41,7 @@ DEBUG = ["sqlx-d1-core/DEBUG", "sqlx-d1-macros?/DEBUG"]
 ################################
 
 [dev-dependencies]
-worker = { version = "0.7", features = ["d1"] }
+worker = { version = "0.8", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 
 [lints.clippy]
