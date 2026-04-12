@@ -19,6 +19,7 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
 | :-------: | :------: |
 |   0.2.*   |   0.6.*  |
 |   0.3.*   |   0.7.*  |
+|   0.4.*   |   0.8.*  |
 
 ## Background
 

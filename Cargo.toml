@@ -6,7 +6,7 @@ exclude = ["sandbox"]
 [workspace.package]
 version = "0.4.0"
 edition = "2024"
-authors = ["kanarus <kanarus786@gmail.com>"]
+authors = ["kanarus <mail@kanarus.dev>"]
 homepage = "https://crates.io/crates/sqlx-d1"
 repository = "https://github.com/ohkami-rs/sqlx-d1"
 readme = "README.md"
