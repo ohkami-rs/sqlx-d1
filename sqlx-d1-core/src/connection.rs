@@ -163,7 +163,7 @@ const _: () = {
         where
             Self: Sized,
         {
-            sqlx_core::transaction::Transaction::begin(self)
+            sqlx_core::transaction::Transaction::begin(self, None)
         }
 
         fn shrink_buffers(&mut self) {
