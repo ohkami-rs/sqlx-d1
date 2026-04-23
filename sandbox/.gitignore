@@ -8,6 +8,7 @@ build/
 /target
 /dist
 wrangler.toml
+wrangler.jsonc
 
 # wrangler files
 .wrangler

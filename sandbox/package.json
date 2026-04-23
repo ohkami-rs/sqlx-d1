@@ -7,6 +7,6 @@
 		"dev": "export WORKER_DEV=1 && wrangler dev"
 	},
 	"devDependencies": {
-		"wrangler": "^4.9.1"
+		"wrangler": "^4.84.1"
 	}
 }
