@@ -16,7 +16,7 @@ pub async fn sample(
     .fetch_one(conn)
     .await
     .map_err(|e| worker::Error::RustError(e.to_string()))?;
-    
+
     let _query_insertinto_noreturning_execute = sqlx_d1::query!(
         "
         INSERT INTO users (uuid, name, age) VALUES (?, ?, ?)
@@ -28,6 +28,6 @@ pub async fn sample(
     .execute(conn)
     .await
     .map_err(|e| worker::Error::RustError(e.to_string()))?;
-    
+
     Ok(())
 }

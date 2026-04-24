@@ -5,7 +5,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use std::io;
 use std::path::{Path, PathBuf};
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 use syn::LitStr;
 
 struct Location {
@@ -74,6 +74,7 @@ impl Location {
         let mut sqlite_files = std::fs::read_dir(miniflare_d1_dir)?
             .filter_map(|r| r.as_ref().ok().map(|e| e.path()))
             .filter(|p| p.extension().is_some_and(|x| x == "sqlite"))
+            .filter(|p| p.file_name().is_some_and(|s| s != "metadata.sqlite"))
             .collect::<Vec<_>>();
 
         match sqlite_files.len() {
@@ -167,42 +168,34 @@ impl DotSqlx {
 pub(super) fn expand_input(input: TokenStream) -> Result<TokenStream, syn::Error> {
     use sqlx_core::executor::Executor;
     use sqlx_d1_core::D1Connection;
-    // Assumeing the cost of context switching is almost the same
-    // or larger than that of synchronous blocking in this case
-    use std::sync::Mutex;
 
     let input = syn::parse2::<self::input::QueryMacroInput>(input)?;
 
     let describe = match LOCATION.miniflare_sqlite_file().map_err(|e| syn::Error::new(Span::call_site(), e))? {
         Some(sqlite_file_path) => {
-            static CONNECTION: OnceLock<Result<Mutex<D1Connection>, syn::Error>> = OnceLock::new();
-
-            let mut conn = CONNECTION.get_or_init(|| {
-                futures_lite::future::block_on(async {
-                    let conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
-                        .await
-                        .map_err(|e| syn::Error::new(Span::call_site(), e))?;
-                    Ok(Mutex::new(conn))
-                })
-            }).as_ref().map_err(Clone::clone)?.lock().map_err(|_| syn::Error::new(
-                input.src_span,
-                "Bug or invalid use of `sqlx_d1`. Be sure to use `sqlx_d1` where the target is set to \
-                `wasm32-unknown-unknown` ! \n\
-                For this, typcally, place `.cargo/config.toml` of following content at the root of \
-                your project or workspace : \n\
-                \n\
-                [build]\n\
-                target = \"wasm32-unknown-unknown\"\n
-                \n\
-                If you think this of a bug, please let me know the situation in \
-                GitHub Issues (https://github.com/ohkami-rs/sqlx-d1/issues) !"
-            ))?;
-
             futures_lite::future::block_on(async {
-                let describe = (&mut *conn).describe(&input.sql).await;
-                drop(conn);
-                describe
-            }).map_err(|e| syn::Error::new(input.src_span, e))?
+                let mut conn = D1Connection::connect(&format!("sqlite://{}", sqlite_file_path.display()))
+                    .await
+                    .map_err(|e| syn::Error::new(
+                        input.src_span,
+                        format!(
+                            "sqlx reported `{e:?}`: maybe bug or invalid use of `sqlx_d1`. Be sure to use `sqlx_d1` where the target is set to \
+                            `wasm32-unknown-unknown` ! \n\
+                            For this, typcally, place `.cargo/config.toml` of following content at the root of \
+                            your project or workspace : \n\
+                            \n\
+                            [build]\n\
+                            target = \"wasm32-unknown-unknown\"\n\
+                            \n\
+                            If you think this of a bug, please let me know the situation in \
+                            GitHub Issues (https://github.com/ohkami-rs/sqlx-d1/issues) !"
+                        )
+                    ))?;
+                let describe = (&mut conn).describe(&input.sql)
+                    .await
+                    .map_err(|e| syn::Error::new(input.src_span, e))?;
+                Ok::<_, syn::Error>(describe)
+            })?
         }
 
         None => match LOCATION.dot_sqlx_dir().map_err(|e| syn::Error::new(input.src_span, e))? {

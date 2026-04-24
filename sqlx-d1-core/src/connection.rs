@@ -588,9 +588,9 @@ const _: () = {
                         .filter_map(|r| {
                             r.as_ref().ok().and_then(|e| {
                                 let path = e.path();
-                                path.extension()
-                                    .is_some_and(|ex| ex == "sqlite")
-                                    .then_some(path)
+                                (path.extension().is_some_and(|x| x == "sqlite")
+                                    && path.file_name().is_some_and(|x| x != "metadata.sqlite"))
+                                .then_some(path)
                             })
                         })
                         .collect::<Vec<_>>()
