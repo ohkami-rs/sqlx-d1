@@ -563,10 +563,11 @@ const _: () = {
                         .join("miniflare-D1DatabaseObject")
                 }
 
-                const PACKAGE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
+                // Should usually be set by cargo at compile time. Falls back to an empty string if unset.
+                let package_root = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_default();
 
                 let (candidate_1, candidate_2) = (
-                    maybe_miniflare_d1_dir_of(PACKAGE_ROOT),
+                    maybe_miniflare_d1_dir_of(&package_root),
                     maybe_miniflare_d1_dir_of("."),
                 );
 
