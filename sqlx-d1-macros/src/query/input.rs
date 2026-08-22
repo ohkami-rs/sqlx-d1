@@ -253,7 +253,7 @@ fn resolve_path(path: impl AsRef<Path>, err_span: Span) -> syn::Result<PathBuf> 
     if path.is_relative()
         && path
             .parent()
-            .is_none_or(|parent| !parent.as_os_str().is_empty())
+            .is_none_or(|parent| parent.as_os_str().is_empty())
     {
         return Err(syn::Error::new(
             err_span,
