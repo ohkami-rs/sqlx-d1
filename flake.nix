@@ -29,11 +29,14 @@
         in
         pkgs.mkShell {
           RUST_SRC_PATH = "${toolchain}/lib/rustlib/src/rust/library";
-          packages = with pkgs; [
+          packages = [
             toolchain
-            cargo-expand
-            worker-build
-            nodejs
+            pkgs.cargo-expand
+            pkgs.nodejs
+            (pkgs.worker-build.overrideAttrs (old: {
+              nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.pkg-config ];
+              buildInputs = (old.buildInputs or []) ++ [ pkgs.zstd ];
+            }))
           ];
         };
     };
