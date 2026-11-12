@@ -20,6 +20,7 @@ SQLx-D1 realizes "SQLx for Cloudflare D1" _**with compile-time SQL verification*
 |   0.2.*   |   0.6.*  |
 |   0.3.*   |   0.7.*  |
 |   0.4.*   |   0.8.*  |
+|   0.5.*   |   0.9.*  |
 
 ## Background
 
@@ -59,8 +60,8 @@ SQLx-D1 works around them by loading `sqlx-sqlite` **only in macro context** and
 # Cargo.toml
 
 [dependencies]
-sqlx-d1 = { version = "0.4", features = ["macros"] }
-worker = { version = "0.8", features = ["d1"] }
+sqlx-d1 = { version = "0.5", features = ["macros"] }
+worker = { version = "0.9", features = ["d1"] }
 serde = { version = "1.0", features = ["derive"] }
 ```
 ```sh
