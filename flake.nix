@@ -34,7 +34,6 @@
             pkgs.cargo-expand
             pkgs.nodejs
             (pkgs.worker-build.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or []) ++ [ pkgs.pkg-config ];
               buildInputs = (old.buildInputs or []) ++ [ pkgs.zstd ];
             }))
           ];
